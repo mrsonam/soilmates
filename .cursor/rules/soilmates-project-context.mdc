@@ -1,0 +1,34 @@
+---
+description: Mandatory Soilmates context, docs, and sibling reference projects
+alwaysApply: true
+---
+
+# Soilmates — agent context
+
+## Before changing behavior or adding features
+
+Read and follow (in this repo root):
+
+1. `PRODUCT_REQUIREMENTS.md` — scope, guardrails, UX
+2. `ARCHITECTURE.md` — stack, layering, security, build order
+3. `DB_SCHEMA.md` — entities, RLS-oriented modeling
+4. `AI_GUIDELINES.md` — non-negotiables for code and AI features
+5. `SYSTEM_OVERVIEW.md` — product/architecture narrative (secondary to 2–4 if conflict)
+
+**Auth:** **NextAuth** (v5) with **Google** provider; sessions are JWT. Postgres is still hosted on **Supabase** for Prisma—only the login path uses NextAuth, not Supabase Auth. If `ARCHITECTURE.md` still mentions Supabase Auth, treat this repo’s implementation as the current approach until docs are updated.
+
+## Reference implementations (sibling folders)
+
+Assume the same parent directory as this repo (e.g. `Desktop/coding/`):
+
+| Topic | Project | Paths to study |
+|--------|---------|----------------|
+| **PWA** | `conscious-spending-plan` | `app/manifest.ts`, `app/layout.tsx` (`manifest` metadata), `app/components/PwaRegistration.tsx`, `public/sw.js` |
+| **NextAuth** | `conscious-spending-plan` | `lib/auth.ts`, `app/api/auth/[...nextauth]/route.ts`, `app/providers.tsx`, `types/next-auth.d.ts` |
+| **Web push** | `productivity` | `app/components/PushNotificationManager.tsx`, `app/actions/push-notifications.ts`, `app/api/cron/reminders/route.ts`, `prisma/schema.prisma` (`PushSubscription`), `public/sw.js` |
+
+Absolute examples on this machine: `c:\Users\Tsering\Desktop\coding\conscious-spending-plan\`, `c:\Users\Tsering\Desktop\coding\productivity\`.
+
+## Next.js
+
+Heed `AGENTS.md`: current Next.js may differ from older docs; check `node_modules/next/dist/docs/` when APIs are uncertain.

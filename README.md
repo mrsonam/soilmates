@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Soilmates
 
-## Getting Started
+Private, shared plant management: collections, care logs, reminders, images, AI assistance, offline-first and realtime collaboration. Product and engineering contracts live in the markdown files in this repository—**read them before implementing features.**
 
-First, run the development server:
+## Documentation (read first)
+
+| Document | Purpose |
+|----------|---------|
+| [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md) | Scope, functional requirements, guardrails |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Technical stack, layering, security, build order |
+| [DB_SCHEMA.md](./DB_SCHEMA.md) | Domain schema, relationships, indexing hints |
+| [AI_GUIDELINES.md](./AI_GUIDELINES.md) | Rules for agents and human contributors |
+| [SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md) | Vision, features, phases (overview) |
+| [AGENTS.md](./AGENTS.md) | Next.js + agent pointers |
+
+Cursor loads [`.cursor/rules/soilmates-project-context.mdc`](./.cursor/rules/soilmates-project-context.mdc) automatically so assistants keep this context.
+
+## Reference projects (PWA, auth patterns, push)
+
+Sibling repositories under the same parent folder as Soilmates (e.g. `coding/`) provide working patterns. Soilmates uses **NextAuth (Google)** for sign-in and **Supabase Postgres** for the database (via Prisma)—see `.env.example`.
+
+- **conscious-spending-plan** (sibling: `../conscious-spending-plan/`) — `app/manifest.ts`, `app/components/PwaRegistration.tsx`, `public/sw.js`, NextAuth v5 in `lib/auth.ts`, `middleware.ts`, `app/providers.tsx`.
+- **productivity** (sibling: `../productivity/`) — Web Push: `app/components/PushNotificationManager.tsx`, `app/actions/push-notifications.ts`, `web-push` + VAPID env vars, `app/api/cron/reminders/route.ts`, Prisma `PushSubscription` in `prisma/schema.prisma`, `public/sw.js`.
+
+On this workspace the folders are `c:\Users\Tsering\Desktop\coding\conscious-spending-plan` and `c:\Users\Tsering\Desktop\coding\productivity`.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Learn more
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js documentation](https://nextjs.org/docs)

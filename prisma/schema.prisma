@@ -1,0 +1,93 @@
+// Soilmates — Postgres via Supabase. See DB_SCHEMA.md for full domain reference.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum CollectionMemberStatus {
+  active
+  invited
+  removed
+}
+
+enum CollectionInviteStatus {
+  pending
+  accepted
+  expired
+  revoked
+}
+
+/// App profile; created on first Google sign-in (NextAuth). `id` is the app user id.
+model Profile {
+  id        String    @id @db.Uuid
+  email     String    @unique
+  fullName  String?   @map("full_name")
+  avatarUrl String?   @map("avatar_url")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  collectionsCreated      Collection[]           @relation("CollectionCreatedBy")
+  collectionMemberships   CollectionMember[]     @relation("MemberUser")
+  collectionInvitedAs     CollectionMember[]     @relation("MemberInvitedBy")
+  collectionInvitesSent   CollectionInvite[]     @relation("InviteInvitedBy")
+
+  @@map("profiles")
+}
+
+model Collection {
+  id          String    @id @db.Uuid
+  slug        String    @unique
+  name        String
+  description String?
+  createdById String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  createdBy Profile             @relation("CollectionCreatedBy", fields: [createdById], references: [id])
+  members   CollectionMember[]
+  invites   CollectionInvite[]
+
+  @@map("collections")
+}
+
+model CollectionMember {
+  id           String                 @id @db.Uuid
+  collectionId String                 @map("collection_id") @db.Uuid
+  userId       String                 @map("user_id") @db.Uuid
+  invitedById  String?                @map("invited_by") @db.Uuid
+  joinedAt     DateTime               @default(now()) @map("joined_at") @db.Timestamptz(6)
+  lastActiveAt DateTime?              @map("last_active_at") @db.Timestamptz(6)
+  status       CollectionMemberStatus
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user       Profile    @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy  Profile?   @relation("MemberInvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([collectionId, userId])
+  @@map("collection_members")
+}
+
+model CollectionInvite {
+  id           String                 @id @db.Uuid
+  collectionId String                 @map("collection_id") @db.Uuid
+  email        String?
+  invitedById  String                 @map("invited_by") @db.Uuid
+  token        String                 @unique
+  status       CollectionInviteStatus
+  expiresAt    DateTime               @map("expires_at") @db.Timestamptz(6)
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  acceptedAt   DateTime?              @map("accepted_at") @db.Timestamptz(6)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  invitedBy  Profile    @relation("InviteInvitedBy", fields: [invitedById], references: [id])
+
+  @@map("collection_invites")
+}

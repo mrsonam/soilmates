@@ -1,0 +1,22 @@
+-- Dev helper: create a pending invite for an existing collection.
+-- Replace UUIDs and token with real values from your DB.
+
+-- INSERT INTO "collection_invites" (
+--   "id",
+--   "collection_id",
+--   "email",
+--   "invited_by",
+--   "token",
+--   "status",
+--   "expires_at",
+--   "created_at"
+-- ) VALUES (
+--   gen_random_uuid(),
+--   '<collection-uuid>',
+--   NULL,  -- or 'member@example.com' to restrict by Google account email
+--   '<inviter-profile-uuid>',
+--   'paste-this-token-in-the-app',
+--   'pending',
+--   NOW() + interval '7 days',
+--   NOW()
+-- );
