@@ -1,19 +1,35 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getFirstCollectionSlugForUser } from "@/lib/collections/memberships";
+import { getAllPlantsForActiveMember } from "@/lib/plants/queries";
 import { PageContainer } from "@/components/layout/page-container";
+import { PlantsPageView } from "@/components/plants/plants-page-view";
 
-export default function PlantsPage() {
+export default async function PlantsPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const userId = session.user.id;
+  const [plants, firstSlug] = await Promise.all([
+    getAllPlantsForActiveMember(userId),
+    getFirstCollectionSlugForUser(userId),
+  ]);
+
+  const hasCollections = firstSlug !== null;
+  const addPlantHref = firstSlug
+    ? `/collections/${firstSlug}/plants/new`
+    : "/collections";
+
   return (
     <PageContainer>
-      <p className="text-sm text-on-surface-variant">All plants</p>
-      <h2 className="mt-1 font-display text-xl font-semibold text-on-surface">
-        Plants
-      </h2>
-      <p className="mt-4 max-w-lg text-sm leading-relaxed text-on-surface-variant">
-        Your plants across collections will appear here. This screen is a
-        placeholder for the full catalog and filters.
-      </p>
-      <div className="mt-10 rounded-3xl border border-dashed border-outline-variant/25 bg-surface-container-low/50 px-6 py-16 text-center text-sm text-on-surface-variant">
-        No plants yet — add some from a collection soon.
-      </div>
+      <PlantsPageView
+        variant="all"
+        plants={plants}
+        addPlantHref={addPlantHref}
+        hasCollections={hasCollections}
+      />
     </PageContainer>
   );
 }

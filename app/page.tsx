@@ -13,5 +13,5 @@ export default async function Home() {
     redirect("/dashboard");
   }
 
-  redirect("/onboarding/collections");
+  redirect("/collections");
 }

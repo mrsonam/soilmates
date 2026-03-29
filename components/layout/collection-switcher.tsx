@@ -38,9 +38,12 @@ export function CollectionSwitcher({ collections }: CollectionSwitcherProps) {
 
   if (collections.length === 0) {
     return (
-      <div className="rounded-2xl bg-surface-container-high/60 px-3 py-2.5 text-xs text-on-surface-variant">
-        No collections
-      </div>
+      <Link
+        href="/collections"
+        className="block rounded-2xl bg-surface-container-high/60 px-3 py-2.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface"
+      >
+        No collections — set up
+      </Link>
     );
   }
 

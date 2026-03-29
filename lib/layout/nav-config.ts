@@ -37,6 +37,11 @@ export const bottomNav: NavEntry[] = [
 export function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === "/dashboard") return false;
+  if (href === "/plants") {
+    if (pathname.startsWith("/plants")) return true;
+    if (/^\/collections\/[^/]+\/plants/.test(pathname)) return true;
+    return false;
+  }
   return pathname.startsWith(`${href}/`);
 }
 
@@ -46,6 +51,7 @@ export function titleForPath(pathname: string): string {
   if (pathname === "/collections" || pathname.startsWith("/collections/"))
     return "Collections";
   if (pathname.startsWith("/plants")) return "Plants";
+  if (/^\/collections\/[^/]+\/plants/.test(pathname)) return "Plants";
   if (pathname.startsWith("/activity")) return "Activity";
   if (pathname.startsWith("/assistant")) return "Assistant";
   if (pathname.startsWith("/settings")) return "Settings";

@@ -34,12 +34,19 @@ export default async function DashboardPage() {
         care.
       </p>
 
-      {primarySlug && (
+      {primarySlug ? (
         <Link
           href={`/collections/${primarySlug}`}
           className="mt-8 inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-medium text-on-primary transition hover:bg-primary/90"
         >
           Open primary collection
+        </Link>
+      ) : (
+        <Link
+          href="/collections"
+          className="mt-8 inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-medium text-on-primary transition hover:bg-primary/90"
+        >
+          Create your first collection
         </Link>
       )}
 

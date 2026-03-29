@@ -23,6 +23,45 @@ enum CollectionInviteStatus {
   revoked
 }
 
+enum PlantLifeStage {
+  sprout
+  juvenile
+  mature
+}
+
+enum PlantHealthStatus {
+  thriving
+  needs_attention
+}
+
+enum PlantAcquisitionType {
+  purchased
+  propagated
+  gift
+  seed
+  other
+}
+
+enum CareLogActionType {
+  watered
+  fertilized
+  misted
+  pruned
+  repotted
+  soil_changed
+  rotated
+  moved_location
+  pest_treatment
+  cleaned_leaves
+  propagated
+  seeded
+  germinated
+  harvested
+  plant_died
+  observation
+  custom
+}
+
 /// App profile; created on first Google sign-in (NextAuth). `id` is the app user id.
 model Profile {
   id        String    @id @db.Uuid
@@ -37,6 +76,7 @@ model Profile {
   collectionMemberships   CollectionMember[]     @relation("MemberUser")
   collectionInvitedAs     CollectionMember[]     @relation("MemberInvitedBy")
   collectionInvitesSent   CollectionInvite[]     @relation("InviteInvitedBy")
+  careLogsCreated         CareLog[]              @relation("CareLogCreatedBy")
 
   @@map("profiles")
 }
@@ -54,8 +94,88 @@ model Collection {
   createdBy Profile             @relation("CollectionCreatedBy", fields: [createdById], references: [id])
   members   CollectionMember[]
   invites   CollectionInvite[]
+  areas     Area[]
+  plants    Plant[]
 
   @@map("collections")
+}
+
+/// A location group inside a collection (e.g. Living Room, Balcony).
+model Area {
+  id           String    @id @db.Uuid
+  collectionId String    @map("collection_id") @db.Uuid
+  slug         String    @db.VarChar(80)
+  name         String
+  description  String?
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt   DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plants     Plant[]
+
+  @@unique([collectionId, slug])
+  @@index([collectionId, archivedAt])
+  @@map("areas")
+}
+
+/// User plant in a collection; denormalized `collectionId` for slug scope and queries.
+model Plant {
+  id                    String                 @id @db.Uuid
+  collectionId          String                 @map("collection_id") @db.Uuid
+  areaId                String                 @map("area_id") @db.Uuid
+  slug                  String                 @db.VarChar(100)
+  nickname              String
+  /// Optional label from a future catalog (kept separate from user nickname).
+  referenceCommonName   String?                @map("reference_common_name")
+  /// Future stable id from canonical plant DB (optional).
+  referenceCatalogId    String?                @map("reference_catalog_id") @db.Uuid
+  plantType             String?                @map("plant_type")
+  lifeStage             PlantLifeStage         @map("life_stage")
+  healthStatus          PlantHealthStatus      @map("health_status")
+  acquisitionType       PlantAcquisitionType   @map("acquisition_type")
+  acquiredAt            DateTime?              @map("acquired_at") @db.Date
+  notes                 String?
+  primaryImageUrl       String?                @map("primary_image_url")
+  growthProgressPercent Int?                   @map("growth_progress_percent") @db.SmallInt
+  isFavorite            Boolean                @default(false) @map("is_favorite")
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt            DateTime?              @map("archived_at") @db.Timestamptz(6)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  area       Area       @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  careLogs   CareLog[]
+
+  @@unique([collectionId, slug])
+  @@index([collectionId, archivedAt])
+  @@index([areaId, archivedAt])
+  @@map("plants")
+}
+
+/// Care events for a plant (quick actions + detailed logs). Soft-deleted rows stay in DB.
+model CareLog {
+  id          String            @id @db.Uuid
+  plantId     String            @map("plant_id") @db.Uuid
+  createdById String            @map("created_by") @db.Uuid
+  actionType  CareLogActionType @map("action_type")
+  /// When the care event happened (may differ from record creation time).
+  actionAt    DateTime          @map("action_at") @db.Timestamptz(6)
+  notes       String?
+  /// Structured extras: water ML, fertilizer type, soil mix, etc.
+  metadata    Json              @default("{}") @map("metadata") @db.JsonB
+  tags        String[]          @default([]) @map("tags")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  plant     Plant   @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy Profile @relation("CareLogCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([plantId, actionAt])
+  @@index([plantId, deletedAt])
+  @@map("care_logs")
 }
 
 model CollectionMember {

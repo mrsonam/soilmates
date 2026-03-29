@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { CollectionMemberStatus } from "@prisma/client";
 
 const activeMemberWhere = {
   status: "active" as const,
@@ -51,8 +52,89 @@ export async function assertUserCanAccessCollection(
       collection: { slug: collectionSlug, archivedAt: null },
     },
     select: {
-      collection: { select: { id: true, name: true, slug: true } },
+      collection: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          createdAt: true,
+        },
+      },
     },
   });
   return row?.collection ?? null;
+}
+
+export type CollectionWithStats = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: Date;
+  memberCount: number;
+  plantCount: number;
+  areaCount: number;
+};
+
+/** Active, non-archived collections the user belongs to, with aggregate stats. */
+export async function getCollectionsWithStatsForUser(
+  userId: string,
+): Promise<CollectionWithStats[]> {
+  const memberships = await prisma.collectionMember.findMany({
+    where: { userId, ...activeMemberWhere },
+    select: { collectionId: true },
+  });
+  const ids = [...new Set(memberships.map((m) => m.collectionId))];
+  if (ids.length === 0) return [];
+
+  const collections = await prisma.collection.findMany({
+    where: { id: { in: ids }, archivedAt: null },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      createdAt: true,
+    },
+  });
+
+  const memberCounts = await prisma.collectionMember.groupBy({
+    by: ["collectionId"],
+    where: {
+      collectionId: { in: ids },
+      status: CollectionMemberStatus.active,
+    },
+    _count: { _all: true },
+  });
+  const memberCountByCollection = Object.fromEntries(
+    memberCounts.map((c) => [c.collectionId, c._count._all]),
+  );
+
+  const areaRows = await prisma.area.findMany({
+    where: { collectionId: { in: ids }, archivedAt: null },
+    select: { id: true, collectionId: true },
+  });
+  const areaCountByCollection: Record<string, number> = {};
+  for (const a of areaRows) {
+    areaCountByCollection[a.collectionId] =
+      (areaCountByCollection[a.collectionId] ?? 0) + 1;
+  }
+
+  const plantGroups = await prisma.plant.groupBy({
+    by: ["collectionId"],
+    where: { archivedAt: null, collectionId: { in: ids } },
+    _count: { _all: true },
+  });
+  const plantCountByCollection = Object.fromEntries(
+    plantGroups.map((g) => [g.collectionId, g._count._all]),
+  );
+
+  return collections.map((c) => ({
+    ...c,
+    memberCount: memberCountByCollection[c.id] ?? 0,
+    plantCount: plantCountByCollection[c.id] ?? 0,
+    areaCount: areaCountByCollection[c.id] ?? 0,
+  }));
 }

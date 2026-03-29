@@ -23,6 +23,7 @@ export async function createCollectionAction(
 
   const parsed = createCollectionSchema.safeParse({
     name: String(formData.get("name") ?? ""),
+    description: String(formData.get("description") ?? ""),
   });
   if (!parsed.success) {
     return {
@@ -48,6 +49,7 @@ export async function createCollectionAction(
           id: randomUUID(),
           slug,
           name: parsed.data.name.trim(),
+          description: parsed.data.description,
           createdById: userId,
         },
       });

@@ -15,9 +15,6 @@ export default async function AuthenticatedAppLayout({
   }
 
   const memberships = await getActiveMembershipsForUser(session.user.id);
-  if (memberships.length === 0) {
-    redirect("/onboarding/collections");
-  }
 
   const collections = memberships.map((m) => ({
     id: m.collection.id,

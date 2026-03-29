@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Leaf } from "lucide-react";
+import { Leaf, Plus } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { sidebarNav, isNavActive } from "@/lib/layout/nav-config";
 import { NavItem } from "./nav-item";
@@ -17,9 +17,27 @@ type SidebarProps = {
   };
 };
 
+function addPlantHrefForPath(
+  pathname: string,
+  collections: CollectionOption[],
+): string {
+  const fromPath = pathname.match(/^\/collections\/([^/]+)/)?.[1];
+  if (
+    fromPath &&
+    collections.some((c) => c.slug === fromPath)
+  ) {
+    return `/collections/${fromPath}/plants/new`;
+  }
+  if (collections[0]) {
+    return `/collections/${collections[0].slug}/plants/new`;
+  }
+  return "/collections";
+}
+
 export function Sidebar({ collections, user }: SidebarProps) {
   const pathname = usePathname();
   const display = user.name?.trim() || user.email.split("@")[0] || "Grower";
+  const addPlantHref = addPlantHrefForPath(pathname, collections);
 
   return (
     <aside
@@ -57,6 +75,14 @@ export function Sidebar({ collections, user }: SidebarProps) {
             />
           ))}
         </nav>
+
+        <Link
+          href={addPlantHref}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-medium text-on-primary shadow-(--shadow-ambient) transition hover:bg-primary/92"
+        >
+          <Plus className="size-4" strokeWidth={2.25} aria-hidden />
+          Add New Plant
+        </Link>
 
         <div className="mt-auto border-t border-outline-variant/10 pt-5">
           <div className="flex items-center gap-3 rounded-2xl px-2 py-2">
