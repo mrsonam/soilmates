@@ -6,11 +6,16 @@ import { auth } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCollectionIdForActiveMember } from "@/lib/collections/access";
+import { syncRemindersFromCareLogSafe } from "@/lib/reminders/sync-from-care-log";
 import {
   createDetailedCareLogSchema,
   deleteCareLogSchema,
   updateCareLogSchema,
 } from "@/lib/validations/care-log";
+import { createActivityEvent } from "@/lib/activity/create-event";
+import { ActivityEventTypes } from "@/lib/activity/event-types";
+import { getActorLabel } from "@/lib/activity/actor-label";
+import { careActionVerbPast } from "@/lib/activity/care-verb";
 
 export type CareLogMutationResult =
   | { ok: true }
@@ -22,6 +27,7 @@ function revalidateCarePaths(collectionSlug: string, plantSlug: string) {
   revalidatePath(`${base}/history`);
   revalidatePath(`/collections/${collectionSlug}/plants`);
   revalidatePath("/plants");
+  revalidatePath("/dashboard");
 }
 
 async function resolvePlantId(
@@ -71,10 +77,11 @@ export async function createDetailedCareLogAction(
     return { ok: false, error: "Plant not found or access denied." };
   }
 
+  const careLogId = randomUUID();
   try {
     await prisma.careLog.create({
       data: {
-        id: randomUUID(),
+        id: careLogId,
         plantId,
         createdById: session.user.id,
         actionType: d.actionType,
@@ -88,6 +95,41 @@ export async function createDetailedCareLogAction(
     console.error(e);
     return { ok: false, error: "Could not save care log." };
   }
+
+  try {
+    const collectionId = await getCollectionIdForActiveMember(
+      session.user.id,
+      d.collectionSlug,
+    );
+    const plantRow = await prisma.plant.findUnique({
+      where: { id: plantId },
+      select: { nickname: true },
+    });
+    if (collectionId && plantRow) {
+      const who = await getActorLabel(session.user.id);
+      const verb = careActionVerbPast(d.actionType);
+      await createActivityEvent({
+        collectionId,
+        plantId,
+        actorUserId: session.user.id,
+        eventType: ActivityEventTypes.careLogAdded,
+        summary: `${who} ${verb} ${plantRow.nickname}`,
+        payload: { careLogId, actionType: d.actionType },
+        collectionSlug: d.collectionSlug,
+        plantSlug: d.plantSlug,
+      });
+    }
+  } catch (e) {
+    console.error("activity event", e);
+  }
+
+  syncRemindersFromCareLogSafe({
+    userId: session.user.id,
+    plantId,
+    careLogId,
+    actionType: d.actionType,
+    actionAt: d.actionAt,
+  });
 
   revalidateCarePaths(d.collectionSlug, d.plantSlug);
   return { ok: true };
@@ -148,6 +190,32 @@ export async function updateCareLogAction(
   } catch (e) {
     console.error(e);
     return { ok: false, error: "Could not update log." };
+  }
+
+  try {
+    const collectionId = await getCollectionIdForActiveMember(
+      session.user.id,
+      d.collectionSlug,
+    );
+    const plantRow = await prisma.plant.findUnique({
+      where: { id: plantId },
+      select: { nickname: true },
+    });
+    if (collectionId && plantRow) {
+      const who = await getActorLabel(session.user.id);
+      await createActivityEvent({
+        collectionId,
+        plantId,
+        actorUserId: session.user.id,
+        eventType: ActivityEventTypes.careLogUpdated,
+        summary: `${who} updated a care log for ${plantRow.nickname}`,
+        payload: { careLogId: d.careLogId },
+        collectionSlug: d.collectionSlug,
+        plantSlug: d.plantSlug,
+      });
+    }
+  } catch (e) {
+    console.error("activity event", e);
   }
 
   revalidateCarePaths(d.collectionSlug, d.plantSlug);

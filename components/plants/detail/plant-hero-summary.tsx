@@ -1,8 +1,8 @@
 import { Heart, MapPin } from "lucide-react";
 import type { PlantDetailModel } from "@/lib/plants/plant-detail";
+import { PlantCoverImage } from "@/components/plants/photos/plant-cover-image";
 import { PlantLifeStageBadge } from "@/components/plants/plant-life-stage-badge";
 import { PlantStatusBadge } from "@/components/plants/plant-status-badge";
-import { PlantImagePlaceholder } from "@/components/plants/plant-image-placeholder";
 
 type PlantHeroSummaryProps = {
   plant: PlantDetailModel;
@@ -12,20 +12,7 @@ export function PlantHeroSummary({ plant }: PlantHeroSummaryProps) {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start">
       <div className="relative">
-        {plant.primaryImageUrl ? (
-          <div className="overflow-hidden rounded-3xl bg-surface-container-low shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- user-supplied URL */}
-            <img
-              src={plant.primaryImageUrl}
-              alt=""
-              className="aspect-[4/3] w-full object-cover"
-            />
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-3xl shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08]">
-            <PlantImagePlaceholder className="aspect-[4/3]" />
-          </div>
-        )}
+        <PlantCoverImage imageUrl={plant.heroImageUrl} alt="" />
         {plant.isFavorite ? (
           <span
             className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-[#c45c5c] text-white shadow-md ring-2 ring-surface/90"

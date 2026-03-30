@@ -2,6 +2,7 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { userHasActiveCollection } from "@/lib/collections/memberships";
 import { CollectionSetupForm } from "@/components/onboarding/collection-setup-form";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 
 export default async function OnboardingCollectionsPage() {
   const session = await auth();
@@ -25,7 +26,7 @@ export default async function OnboardingCollectionsPage() {
             Set up where you&apos;ll track plants together
           </p>
         </header>
-        <CollectionSetupForm />
+        <CollectionSetupForm uploadsEnabled={isSupabaseStorageConfigured()} />
         <form
           className="mt-12 text-center"
           action={async () => {

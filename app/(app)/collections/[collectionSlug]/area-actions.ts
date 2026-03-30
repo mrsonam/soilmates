@@ -6,11 +6,24 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCollectionIdForActiveMember } from "@/lib/collections/access";
 import { resolveUniqueAreaSlug } from "@/lib/collections/area-slug";
+import {
+  clearAreaCover,
+  setAreaCoverFromFile,
+  validateCoverImageFile,
+} from "@/lib/collections/cover-storage";
+import { deletePlantImageObject } from "@/lib/supabase/admin";
+import { createActivityEvent } from "@/lib/activity/create-event";
+import { ActivityEventTypes } from "@/lib/activity/event-types";
+import { getActorLabel } from "@/lib/activity/actor-label";
 import { createAreaSchema, updateAreaSchema } from "@/lib/validations/area";
 import type { AreaMutationFormState } from "./area-form-state";
 
 function revalidateCollection(collectionSlug: string) {
   revalidatePath(`/collections/${collectionSlug}`);
+}
+
+function revalidateArea(collectionSlug: string, areaSlug: string) {
+  revalidatePath(`/collections/${collectionSlug}/areas/${areaSlug}`);
 }
 
 export async function createAreaAction(
@@ -45,6 +58,17 @@ export async function createAreaAction(
     };
   }
 
+  const coverFile = formData.get("coverImage") as File | null;
+  if (coverFile && coverFile.size > 0) {
+    const chk = validateCoverImageFile(coverFile);
+    if (!chk.ok) {
+      return { error: chk.error };
+    }
+  }
+
+  let newAreaId: string | null = null;
+  let newAreaSlug: string | null = null;
+
   try {
     await prisma.$transaction(async (tx) => {
       const slug = await resolveUniqueAreaSlug(
@@ -58,9 +82,10 @@ export async function createAreaAction(
       });
       const sortOrder = (agg._max.sortOrder ?? -1) + 1;
 
+      const id = randomUUID();
       await tx.area.create({
         data: {
-          id: randomUUID(),
+          id,
           collectionId,
           slug,
           name: parsed.data.name.trim(),
@@ -71,13 +96,50 @@ export async function createAreaAction(
           sortOrder,
         },
       });
+      newAreaId = id;
+      newAreaSlug = slug;
     });
   } catch (e) {
     console.error(e);
     return { error: "Could not create area. Try again." };
   }
 
+  if (coverFile && coverFile.size > 0 && newAreaId) {
+    const up = await setAreaCoverFromFile(
+      session.user.id,
+      collectionSlug,
+      newAreaId,
+      coverFile,
+    );
+    if (!up.ok) {
+      try {
+        await prisma.area.delete({ where: { id: newAreaId } });
+      } catch {
+        /* ignore */
+      }
+      return { error: up.error };
+    }
+  }
+
   revalidateCollection(collectionSlug);
+  if (newAreaSlug) {
+    revalidateArea(collectionSlug, newAreaSlug);
+  }
+  if (newAreaId) {
+    try {
+      const who = await getActorLabel(session.user.id);
+      await createActivityEvent({
+        collectionId,
+        actorUserId: session.user.id,
+        eventType: ActivityEventTypes.areaCreated,
+        summary: `${who} added ${parsed.data.name.trim()} as an area`,
+        payload: { areaName: parsed.data.name.trim() },
+        collectionSlug,
+      });
+    } catch (e) {
+      console.error("activity event", e);
+    }
+  }
   return { success: true };
 }
 
@@ -114,6 +176,46 @@ export async function updateAreaAction(
     };
   }
 
+  const existing = await prisma.area.findFirst({
+    where: {
+      id: areaId,
+      collectionId,
+      archivedAt: null,
+    },
+    select: { slug: true },
+  });
+  if (!existing) {
+    return { error: "Area not found or you can't edit it." };
+  }
+
+  const removeCover = formData.get("removeCover") === "on";
+  const coverFile = formData.get("coverImage") as File | null;
+
+  if (removeCover) {
+    const cleared = await clearAreaCover(
+      session.user.id,
+      collectionSlug,
+      areaId,
+    );
+    if (!cleared.ok) {
+      return { error: cleared.error };
+    }
+  } else if (coverFile && coverFile.size > 0) {
+    const chk = validateCoverImageFile(coverFile);
+    if (!chk.ok) {
+      return { error: chk.error };
+    }
+    const up = await setAreaCoverFromFile(
+      session.user.id,
+      collectionSlug,
+      areaId,
+      coverFile,
+    );
+    if (!up.ok) {
+      return { error: up.error };
+    }
+  }
+
   const updated = await prisma.area.updateMany({
     where: {
       id: areaId,
@@ -127,10 +229,24 @@ export async function updateAreaAction(
   });
 
   if (updated.count === 0) {
-    return { error: "Area not found or you can’t edit it." };
+    return { error: "Area not found or you can't edit it." };
   }
 
   revalidateCollection(collectionSlug);
+  revalidateArea(collectionSlug, existing.slug);
+  try {
+    const who = await getActorLabel(session.user.id);
+    await createActivityEvent({
+      collectionId,
+      actorUserId: session.user.id,
+      eventType: ActivityEventTypes.areaUpdated,
+      summary: `${who} updated ${parsed.data.name.trim()}`,
+      payload: { areaName: parsed.data.name.trim() },
+      collectionSlug,
+    });
+  } catch (e) {
+    console.error("activity event", e);
+  }
   return { success: true };
 }
 
@@ -163,7 +279,7 @@ export async function archiveAreaAction(
       collectionId,
       archivedAt: null,
     },
-    select: { id: true },
+    select: { id: true, coverImageStoragePath: true, slug: true },
   });
   if (!area) {
     return { error: "Area not found." };
@@ -178,11 +294,22 @@ export async function archiveAreaAction(
     };
   }
 
+  const oldCoverPath = area.coverImageStoragePath;
+
   await prisma.area.update({
     where: { id: areaId },
-    data: { archivedAt: new Date() },
+    data: {
+      archivedAt: new Date(),
+      coverImageStoragePath: null,
+      coverImageMimeType: null,
+    },
   });
 
+  if (oldCoverPath) {
+    await deletePlantImageObject(oldCoverPath);
+  }
+
   revalidateCollection(collectionSlug);
+  revalidateArea(collectionSlug, area.slug);
   return { success: true };
 }

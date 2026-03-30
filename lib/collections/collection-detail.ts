@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { CollectionMemberStatus } from "@prisma/client";
+import {
+  createSignedUrlsForPaths,
+  isSupabaseStorageConfigured,
+} from "@/lib/supabase/admin";
 
 export type AreaForCollectionDetail = {
   id: string;
@@ -10,6 +14,8 @@ export type AreaForCollectionDetail = {
   sortOrder: number;
   plantCount: number;
   createdAt: string;
+  /** Signed URL for area cover when storage is configured. */
+  coverImageSignedUrl: string | null;
 };
 
 export type CollectionDetailForMember = {
@@ -21,6 +27,7 @@ export type CollectionDetailForMember = {
   memberCount: number;
   plantCount: number;
   areaCount: number;
+  coverImageSignedUrl: string | null;
   areas: AreaForCollectionDetail[];
 };
 
@@ -44,6 +51,7 @@ export const getCollectionDetailForActiveMember = cache(
             slug: true,
             description: true,
             createdAt: true,
+            coverImageStoragePath: true,
           },
         },
       },
@@ -69,6 +77,7 @@ export const getCollectionDetailForActiveMember = cache(
           description: true,
           sortOrder: true,
           createdAt: true,
+          coverImageStoragePath: true,
           _count: {
             select: {
               plants: { where: { archivedAt: null } },
@@ -84,6 +93,25 @@ export const getCollectionDetailForActiveMember = cache(
       }),
     ]);
 
+    const pathsToSign: string[] = [];
+    if (row.collection.coverImageStoragePath) {
+      pathsToSign.push(row.collection.coverImageStoragePath);
+    }
+    for (const a of areasRaw) {
+      if (a.coverImageStoragePath) {
+        pathsToSign.push(a.coverImageStoragePath);
+      }
+    }
+
+    const signed =
+      isSupabaseStorageConfigured() && pathsToSign.length > 0
+        ? await createSignedUrlsForPaths(pathsToSign)
+        : new Map<string, string>();
+
+    const collectionCoverUrl = row.collection.coverImageStoragePath
+      ? (signed.get(row.collection.coverImageStoragePath) ?? null)
+      : null;
+
     const areas: AreaForCollectionDetail[] = areasRaw.map((a) => ({
       id: a.id,
       slug: a.slug,
@@ -92,6 +120,9 @@ export const getCollectionDetailForActiveMember = cache(
       sortOrder: a.sortOrder,
       plantCount: a._count.plants,
       createdAt: a.createdAt.toISOString(),
+      coverImageSignedUrl: a.coverImageStoragePath
+        ? (signed.get(a.coverImageStoragePath) ?? null)
+        : null,
     }));
 
     return {
@@ -103,6 +134,7 @@ export const getCollectionDetailForActiveMember = cache(
       memberCount,
       plantCount,
       areaCount: areas.length,
+      coverImageSignedUrl: collectionCoverUrl,
       areas,
     };
   },

@@ -39,9 +39,19 @@ export function AreaCard({ area, collectionSlug, onEdit }: AreaCardProps) {
         className="group block overflow-hidden rounded-3xl bg-surface-container-lowest shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] transition hover:shadow-[0_20px_40px_-16px_rgba(27,28,26,0.1)] hover:ring-primary/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
       >
         <div
-          className={`relative aspect-[4/3] bg-gradient-to-br ${gradient}`}
+          className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-br ${gradient}`}
           aria-hidden
         >
+          {area.coverImageSignedUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
+              <img
+                src={area.coverImageSignedUrl}
+                alt=""
+                className="absolute inset-0 size-full object-cover"
+              />
+            </>
+          ) : null}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.12),transparent_50%)]" />
         </div>
         <div className="p-5">

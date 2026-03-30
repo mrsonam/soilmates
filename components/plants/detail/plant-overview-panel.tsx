@@ -164,20 +164,34 @@ export function PlantOverviewPanel({
         </div>
         <div className="rounded-3xl bg-surface-container-high/50 px-5 py-5 ring-1 ring-outline-variant/10 sm:px-6">
           <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-on-surface-variant">
-            Coming soon
+            Gallery & more
           </p>
           <ul className="mt-3 space-y-2 text-sm text-on-surface-variant">
-            <li>
-              Photos:{" "}
+            <li className="flex flex-wrap items-baseline gap-x-2">
+              <span>Photos:</span>
               <span className="font-medium text-on-surface">
                 {plant.counts.photos}
               </span>
+              {plant.counts.photos > 0 ? (
+                <Link
+                  href={`/collections/${collectionSlug}/plants/${plant.slug}/photos`}
+                  className="text-primary hover:underline"
+                >
+                  View gallery
+                </Link>
+              ) : null}
             </li>
-            <li>
-              Reminders:{" "}
+            <li className="flex flex-wrap items-baseline gap-x-2">
+              <span>Reminders:</span>
               <span className="font-medium text-on-surface">
                 {plant.counts.reminders}
               </span>
+              <Link
+                href={`/collections/${collectionSlug}/plants/${plant.slug}?tab=reminders`}
+                className="text-primary hover:underline"
+              >
+                {plant.counts.reminders === 0 ? "Add" : "Manage"}
+              </Link>
             </li>
           </ul>
         </div>

@@ -6,8 +6,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCollectionIdForActiveMember } from "@/lib/collections/access";
+import { attachCoverImageForNewPlant } from "@/lib/plants/attach-cover-for-new-plant";
 import { resolveUniquePlantSlug } from "@/lib/plants/slug";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { createPlantSchema } from "@/lib/validations/plant";
+import { createActivityEvent } from "@/lib/activity/create-event";
+import { ActivityEventTypes } from "@/lib/activity/event-types";
+import { getActorLabel } from "@/lib/activity/actor-label";
 import type { CreatePlantFormState } from "./plant-form-state";
 
 export async function createPlantAction(
@@ -32,6 +37,17 @@ export async function createPlantAction(
     return { error: "You don’t have access to this collection." };
   }
 
+  const coverFileRaw = formData.get("coverImage");
+  const coverFile =
+    coverFileRaw instanceof File && coverFileRaw.size > 0 ? coverFileRaw : null;
+
+  if (coverFile && !isSupabaseStorageConfigured()) {
+    return {
+      error:
+        "Photo storage is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY). Remove the image or add those env vars.",
+    };
+  }
+
   const parsed = createPlantSchema.safeParse({
     nickname: String(formData.get("nickname") ?? ""),
     referenceCommonName: String(formData.get("referenceCommonName") ?? ""),
@@ -53,6 +69,9 @@ export async function createPlantAction(
     };
   }
 
+  const primaryImageUrl =
+    coverFile != null ? undefined : parsed.data.primaryImageUrl;
+
   const area = await prisma.area.findFirst({
     where: {
       id: parsed.data.areaId,
@@ -65,16 +84,19 @@ export async function createPlantAction(
     return { error: "That area doesn’t belong to this collection." };
   }
 
+  const plantId = randomUUID();
+  let slug = "";
+
   try {
     await prisma.$transaction(async (tx) => {
-      const slug = await resolveUniquePlantSlug(
+      slug = await resolveUniquePlantSlug(
         collectionId,
         parsed.data.nickname,
         tx,
       );
       await tx.plant.create({
         data: {
-          id: randomUUID(),
+          id: plantId,
           collectionId,
           areaId: parsed.data.areaId,
           slug,
@@ -89,7 +111,7 @@ export async function createPlantAction(
             ? new Date(`${parsed.data.acquiredAt}T12:00:00.000Z`)
             : null,
           notes: parsed.data.notes ?? null,
-          primaryImageUrl: parsed.data.primaryImageUrl ?? null,
+          primaryImageUrl: primaryImageUrl ?? null,
           growthProgressPercent: parsed.data.growthProgressPercent ?? null,
           isFavorite: parsed.data.isFavorite,
         },
@@ -100,8 +122,51 @@ export async function createPlantAction(
     return { error: "Could not create plant. Try again." };
   }
 
+  try {
+    const areaRow = await prisma.area.findFirst({
+      where: { id: parsed.data.areaId, collectionId },
+      select: { name: true },
+    });
+    const who = await getActorLabel(session.user.id);
+    await createActivityEvent({
+      collectionId,
+      plantId,
+      actorUserId: session.user.id,
+      eventType: ActivityEventTypes.plantAdded,
+      summary: `${who} added ${parsed.data.nickname.trim()} to ${areaRow?.name ?? "an area"}`,
+      payload: {
+        plantSlug: slug,
+        nickname: parsed.data.nickname.trim(),
+        areaName: areaRow?.name ?? null,
+      },
+      collectionSlug,
+      plantSlug: slug,
+    });
+  } catch (e) {
+    console.error("activity event", e);
+  }
+
+  if (coverFile) {
+    const coverResult = await attachCoverImageForNewPlant({
+      userId: session.user.id,
+      collectionId,
+      plantId,
+      file: coverFile,
+    });
+    if (!coverResult.ok) {
+      try {
+        await prisma.plant.delete({ where: { id: plantId } });
+      } catch (delErr) {
+        console.error(delErr);
+      }
+      return { error: coverResult.error };
+    }
+  }
+
   revalidatePath(`/collections/${collectionSlug}`);
   revalidatePath(`/collections/${collectionSlug}/plants`);
+  revalidatePath(`/collections/${collectionSlug}/plants/${slug}`);
+  revalidatePath(`/collections/${collectionSlug}/plants/${slug}/photos`);
   revalidatePath("/plants");
-  redirect(`/collections/${collectionSlug}/plants`);
+  redirect(`/collections/${collectionSlug}/plants/${slug}`);
 }

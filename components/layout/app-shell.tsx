@@ -9,10 +9,13 @@ import type { CollectionOption } from "./collection-switcher";
 import { CollectionsCreateProvider } from "./collections-create-provider";
 import { CollectionHeaderProvider } from "./collection-header-context";
 import { CollectionPageActionsProvider } from "./collection-page-actions";
+import { AppRealtimeSync } from "./app-realtime-sync";
 
 type AppShellProps = {
   children: ReactNode;
   collections: CollectionOption[];
+  /** True when server can upload to Supabase (collection cover required on create). */
+  uploadsEnabled: boolean;
   user: {
     name?: string | null;
     email: string;
@@ -20,13 +23,14 @@ type AppShellProps = {
   };
 };
 
-export function AppShell({ children, collections, user }: AppShellProps) {
+export function AppShell({ children, collections, uploadsEnabled, user }: AppShellProps) {
   return (
-    <CollectionsCreateProvider>
+    <CollectionsCreateProvider uploadsEnabled={uploadsEnabled}>
       <CollectionHeaderProvider>
         <CollectionPageActionsProvider>
         <div className="min-h-dvh bg-surface text-on-surface">
-          <div className="flex min-h-dvh">
+          <AppRealtimeSync />
+          <div className="flex min-h-dvh items-stretch">
             <Sidebar collections={collections} user={user} />
             <div className="flex min-w-0 flex-1 flex-col lg:min-h-dvh">
               <AppHeader collections={collections} user={user} />

@@ -8,20 +8,23 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Users, X } from "lucide-react";
+import { Users, X } from "lucide-react";
 import { createCollectionInAppAction } from "@/app/(app)/collections/actions";
 import { createCollectionFormInitialState } from "@/app/(app)/collections/create-collection-form-state";
 
 type CreateCollectionDialogProps = {
   open: boolean;
   onClose: () => void;
+  uploadsEnabled: boolean;
 };
 
 function CreateCollectionFormBody({
+  uploadsEnabled,
   onClose,
   onSuccess,
   formKey,
 }: {
+  uploadsEnabled: boolean;
   onClose: () => void;
   onSuccess: () => void;
   formKey: number;
@@ -59,7 +62,11 @@ function CreateCollectionFormBody({
         </button>
       </div>
 
-      <form action={formAction} className="mt-6 space-y-6">
+      <form
+        action={formAction}
+        encType="multipart/form-data"
+        className="mt-6 space-y-6"
+      >
         {state.error && (
           <p
             className="rounded-2xl bg-surface-container-low px-3 py-2.5 text-sm text-on-surface-variant"
@@ -107,22 +114,49 @@ function CreateCollectionFormBody({
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-medium text-on-surface">Cover image</p>
-          <div
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant/40 bg-surface-container-low/50 px-4 py-10 text-center"
-            aria-hidden
+          <label
+            htmlFor={`cc-cover-${formKey}`}
+            className="mb-2 block text-sm font-medium text-on-surface"
           >
-            <ImagePlus
-              className="size-8 text-on-surface-variant/45"
-              strokeWidth={1.25}
-            />
-            <span className="text-sm text-on-surface-variant">
-              Click to upload cover photo
-            </span>
-            <span className="rounded-full bg-surface-container-high px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-on-surface-variant">
-              Coming soon
-            </span>
-          </div>
+            Cover photo{" "}
+            {uploadsEnabled ? (
+              <span className="text-primary">*</span>
+            ) : (
+              <span className="font-normal text-on-surface-variant">
+                (needs storage)
+              </span>
+            )}
+          </label>
+          {uploadsEnabled ? (
+            <>
+              <input
+                id={`cc-cover-${formKey}`}
+                name="coverImage"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                required
+                disabled={pending}
+                className="w-full rounded-2xl border border-outline-variant/15 bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface file:mr-3 file:rounded-xl file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+              />
+              <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
+                JPEG, PNG, WebP, or GIF · up to 10 MB. Shown on your collections
+                list and collection home.
+              </p>
+            </>
+          ) : (
+            <p className="rounded-2xl bg-amber-500/10 px-4 py-3 text-sm text-amber-950/90 ring-1 ring-amber-500/20 dark:text-amber-100/90">
+              Add{" "}
+              <code className="rounded bg-black/5 px-1 py-0.5 text-xs">
+                SUPABASE_URL
+              </code>{" "}
+              and{" "}
+              <code className="rounded bg-black/5 px-1 py-0.5 text-xs">
+                SUPABASE_SERVICE_ROLE_KEY
+              </code>{" "}
+              to require a cover when creating a collection. Without storage you
+              can still create a collection without a photo.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3 rounded-2xl bg-primary-fixed/35 px-4 py-3.5 ring-1 ring-primary/10">
@@ -182,6 +216,7 @@ function CreateCollectionFormBody({
 export function CreateCollectionDialog({
   open,
   onClose,
+  uploadsEnabled,
 }: CreateCollectionDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [formKey, setFormKey] = useState(0);
@@ -203,7 +238,7 @@ export function CreateCollectionDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed left-1/2 top-1/2 z-60 w-[min(100vw-1.5rem,28rem)] max-h-[min(92dvh,40rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border-0 bg-surface-container-lowest p-0 shadow-[0_28px_56px_-16px_rgba(27,28,26,0.18)] backdrop:bg-on-surface/25 backdrop:backdrop-blur-sm"
+      className="fixed left-1/2 top-1/2 z-60 w-[min(100vw-1.5rem,28rem)] max-h-[min(92dvh,40rem)] -translate-x-1/2 -translate-y-1/2 modal-scroll rounded-3xl border-0 bg-surface-container-lowest p-0 shadow-[0_28px_56px_-16px_rgba(27,28,26,0.18)] backdrop:bg-on-surface/25 backdrop:backdrop-blur-sm"
       aria-labelledby="create-collection-dialog-title"
       onClose={onClose}
       onCancel={(e) => {
@@ -215,6 +250,7 @@ export function CreateCollectionDialog({
         <CreateCollectionFormBody
           key={formKey}
           formKey={formKey}
+          uploadsEnabled={uploadsEnabled}
           onClose={onClose}
           onSuccess={onSuccess}
         />

@@ -3,8 +3,10 @@
 import { useState } from "react";
 import type { PlantDetailModel } from "@/lib/plants/plant-detail";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
+import type { PlantGalleryImage } from "@/lib/plants/plant-images";
+import { PlantPhotoGallery } from "@/components/plants/photos/plant-photo-gallery";
 import { CareHistorySection } from "@/components/plants/care-history/care-history-section";
-import { PlantDetailBreadcrumb } from "./plant-detail-breadcrumb";
+import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
 import { PlantHeroSummary } from "./plant-hero-summary";
 import { QuickCareActions } from "./quick-care-actions";
 import {
@@ -13,6 +15,10 @@ import {
 } from "./plant-section-tabs";
 import { PlantOverviewPanel } from "./plant-overview-panel";
 import { PlantSectionPlaceholder } from "./plant-section-placeholder";
+import type { ReminderListItem } from "@/lib/reminders/queries";
+import { PlantRemindersSection } from "@/components/reminders/plant-reminders-section";
+import type { ActivityFeedItem } from "@/lib/activity/queries";
+import { PlantActivityPreview } from "@/components/activity/plant-activity-preview";
 
 type PlantDetailViewProps = {
   plant: PlantDetailModel;
@@ -20,6 +26,10 @@ type PlantDetailViewProps = {
   careLogs: CareLogListItem[];
   currentUserId: string;
   initialTab?: PlantDetailTabId;
+  galleryImages: PlantGalleryImage[];
+  uploadsEnabled: boolean;
+  reminders: ReminderListItem[];
+  plantActivity: ActivityFeedItem[];
 };
 
 export function PlantDetailView({
@@ -28,16 +38,16 @@ export function PlantDetailView({
   careLogs,
   currentUserId,
   initialTab,
+  galleryImages,
+  uploadsEnabled,
+  reminders,
+  plantActivity,
 }: PlantDetailViewProps) {
   const [tab, setTab] = useState<PlantDetailTabId>(initialTab ?? "overview");
 
   return (
     <div className="space-y-8 lg:space-y-10">
-      <PlantDetailBreadcrumb
-        collectionSlug={collectionSlug}
-        collectionName={plant.collection.name}
-        plantNickname={plant.nickname}
-      />
+      <CollectionSectionTabs collectionSlug={collectionSlug} />
 
       <PlantHeroSummary plant={plant} />
 
@@ -45,6 +55,21 @@ export function PlantDetailView({
         collectionSlug={collectionSlug}
         plantSlug={plant.slug}
       />
+
+      <section className="rounded-3xl bg-surface-container-lowest/60 p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">
+        <h2 className="font-display text-lg font-semibold text-on-surface">
+          Activity
+        </h2>
+        <p className="mt-1 text-sm text-on-surface-variant">
+          Care logs show history; here are shared updates from your household.
+        </p>
+        <div className="mt-5">
+          <PlantActivityPreview
+            collectionSlug={collectionSlug}
+            items={plantActivity}
+          />
+        </div>
+      </section>
 
       <div className="rounded-3xl bg-surface-container-lowest/60 p-4 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">
         <PlantSectionTabs active={tab} onChange={setTab} />
@@ -66,15 +91,20 @@ export function PlantDetailView({
             />
           )}
           {tab === "photos" && (
-            <PlantSectionPlaceholder
-              title="Photos"
-              description="Growth albums and seasonal snapshots will live here so you can compare how your plant changes over time."
+            <PlantPhotoGallery
+              variant="tab"
+              collectionSlug={collectionSlug}
+              plantSlug={plant.slug}
+              plantNickname={plant.nickname}
+              images={galleryImages}
+              uploadsEnabled={uploadsEnabled}
             />
           )}
           {tab === "reminders" && (
-            <PlantSectionPlaceholder
-              title="Reminders"
-              description="Set watering and care nudges per plant. We’ll surface due dates alongside your collection calendar."
+            <PlantRemindersSection
+              collectionSlug={collectionSlug}
+              plantSlug={plant.slug}
+              reminders={reminders}
             />
           )}
           {tab === "diagnosis" && (

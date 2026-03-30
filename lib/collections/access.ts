@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { CollectionMemberStatus } from "@prisma/client";
+import { createSignedUrlForStoragePath } from "@/lib/supabase/admin";
 
 /** Collection id if the user is an active member of a non-archived collection. */
 export async function getCollectionIdForActiveMember(
@@ -56,7 +57,7 @@ export async function getAreaForActiveMemberBySlugs(
   );
   if (!collectionId) return null;
 
-  return prisma.area.findFirst({
+  const row = await prisma.area.findFirst({
     where: {
       collectionId,
       slug: areaSlug,
@@ -69,6 +70,7 @@ export async function getAreaForActiveMemberBySlugs(
       description: true,
       sortOrder: true,
       createdAt: true,
+      coverImageStoragePath: true,
       _count: {
         select: {
           plants: { where: { archivedAt: null } },
@@ -76,4 +78,20 @@ export async function getAreaForActiveMemberBySlugs(
       },
     },
   });
+  if (!row) return null;
+
+  const coverImageSignedUrl = row.coverImageStoragePath
+    ? await createSignedUrlForStoragePath(row.coverImageStoragePath)
+    : null;
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description,
+    sortOrder: row.sortOrder,
+    createdAt: row.createdAt,
+    _count: row._count,
+    coverImageSignedUrl,
+  };
 }

@@ -1,10 +1,11 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getCollectionDetailForActiveMember } from "@/lib/collections/collection-detail";
-import { getPlantsForCollectionMember } from "@/lib/plants/queries";
+import { getCollectionActivityForMember } from "@/lib/activity/queries";
 import { PageContainer } from "@/components/layout/page-container";
 import { CollectionDetailView } from "@/components/collections/collection-detail-view";
 import { formatShortDate } from "@/lib/format";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 
 type Props = {
   params: Promise<{ collectionSlug: string }>;
@@ -17,18 +18,17 @@ export default async function CollectionHomePage({ params }: Props) {
   }
 
   const { collectionSlug } = await params;
-  const [detail, plantsPayload] = await Promise.all([
+  const [detail, activityPreview] = await Promise.all([
     getCollectionDetailForActiveMember(session.user.id, collectionSlug),
-    getPlantsForCollectionMember(session.user.id, collectionSlug),
+    getCollectionActivityForMember(session.user.id, collectionSlug, 8),
   ]);
 
   if (!detail) {
     notFound();
   }
 
-  const plants = plantsPayload?.plants ?? [];
-
   const createdLabel = `Created ${formatShortDate(detail.createdAt.toISOString())}`;
+  const uploadsEnabled = isSupabaseStorageConfigured();
 
   return (
     <PageContainer>
@@ -41,7 +41,9 @@ export default async function CollectionHomePage({ params }: Props) {
         plantCount={detail.plantCount}
         areaCount={detail.areaCount}
         areas={detail.areas}
-        plants={plants}
+        collectionCoverUrl={detail.coverImageSignedUrl}
+        uploadsEnabled={uploadsEnabled}
+        activityPreview={activityPreview}
       />
     </PageContainer>
   );

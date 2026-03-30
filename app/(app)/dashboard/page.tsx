@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getActiveMembershipsForUser } from "@/lib/collections/memberships";
+import { getDashboardDueCare } from "@/lib/reminders/queries";
 import {
-  getActiveMembershipsForUser,
-  getFirstCollectionSlugForUser,
-} from "@/lib/collections/memberships";
+  getDashboardSnapshot,
+  getDashboardRecentActivity,
+  getDashboardFavoritePlants,
+} from "@/lib/dashboard/queries";
+import { dashboardGreetingLine } from "@/lib/dashboard/greeting";
 import { PageContainer } from "@/components/layout/page-container";
+import { DashboardNeedsAttention } from "@/components/dashboard/dashboard-needs-attention";
+import { DashboardSnapshot } from "@/components/dashboard/dashboard-snapshot";
+import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity";
+import { DashboardFavorites } from "@/components/dashboard/dashboard-favorites";
+import { DashboardAssistantNudge } from "@/components/dashboard/dashboard-assistant-nudge";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -13,81 +22,75 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const memberships = await getActiveMembershipsForUser(session.user.id);
-  const primarySlug = await getFirstCollectionSlugForUser(session.user.id);
-  const greeting =
+  const firstName =
     session.user.name?.trim()?.split(" ")[0] ??
     session.user.email?.split("@")[0] ??
-    "there";
+    "Gardener";
+
+  const [memberships, dueCare, snapshot, recentActivity, favorites] =
+    await Promise.all([
+    getActiveMembershipsForUser(session.user.id),
+    getDashboardDueCare(session.user.id),
+    getDashboardSnapshot(session.user.id),
+    getDashboardRecentActivity(session.user.id),
+    getDashboardFavoritePlants(session.user.id),
+  ]);
+
+  const attentionCount = dueCare.filter(
+    (i) => i.status === "due" || i.status === "overdue",
+  ).length;
+  const greeting = dashboardGreetingLine(firstName);
+  const subline =
+    attentionCount > 0
+      ? `You have ${attentionCount} ${attentionCount === 1 ? "reminder" : "reminders"} that could use your attention.`
+      : "You’re all caught up on scheduled care — enjoy the calm.";
 
   return (
-    <PageContainer>
-      <p className="text-sm text-on-surface-variant">
-        Welcome back,{" "}
-        <span className="font-medium text-on-surface">{greeting}</span>
-      </p>
-      <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-on-surface">
-        Your plant spaces
-      </h2>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-on-surface-variant">
-        Pick up where you left off, or open a collection to manage plants and
-        care.
-      </p>
+    <PageContainer wide>
+      <div className="xl:grid xl:grid-cols-[1fr_22rem] xl:gap-12">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-on-surface sm:text-[2rem]">
+            {greeting}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-on-surface-variant">
+            {subline}
+          </p>
 
-      {primarySlug ? (
-        <Link
-          href={`/collections/${primarySlug}`}
-          className="mt-8 inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-medium text-on-primary transition hover:bg-primary/90"
-        >
-          Open primary collection
-        </Link>
-      ) : (
-        <Link
-          href="/collections"
-          className="mt-8 inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-medium text-on-primary transition hover:bg-primary/90"
-        >
-          Create your first collection
-        </Link>
-      )}
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-semibold text-on-surface">
+              Needs attention today
+            </h2>
+            <p className="mt-1 text-sm text-on-surface-variant">
+              Reminders due or coming up — tap done when you&apos;ve taken care of it.
+            </p>
+            <div className="mt-6">
+              <DashboardNeedsAttention items={dueCare} />
+            </div>
+          </section>
 
-      <section className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-3xl bg-surface-container-low p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-            Due care
-          </p>
-          <p className="mt-2 font-display text-2xl font-semibold text-on-surface">
-            —
-          </p>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Tasks and reminders will appear here.
-          </p>
+          <DashboardFavorites plants={favorites} />
         </div>
-        <div className="rounded-3xl bg-surface-container-low p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-            Collections
-          </p>
-          <p className="mt-2 font-display text-2xl font-semibold text-on-surface">
-            {memberships.length}
-          </p>
-          <Link
-            href="/collections"
-            className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="rounded-3xl bg-surface-container-low p-6 sm:col-span-2 lg:col-span-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-            Plants
-          </p>
-          <p className="mt-2 font-display text-2xl font-semibold text-on-surface">
-            —
-          </p>
-          <p className="mt-1 text-xs text-on-surface-variant">
-            Count will sync when plants ship.
-          </p>
-        </div>
-      </section>
+
+        <aside className="mt-12 space-y-10 border-t border-outline-variant/10 pt-10 xl:mt-0 xl:border-t-0 xl:border-l xl:pl-10 xl:pt-0">
+          <DashboardSnapshot data={snapshot} />
+          <DashboardRecentActivity rows={recentActivity} />
+          <DashboardAssistantNudge />
+          <div className="rounded-2xl bg-surface-container-low/60 p-5 ring-1 ring-outline-variant/10">
+            <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+              Collections
+            </p>
+            <p className="mt-2 font-display text-2xl font-semibold text-on-surface">
+              {memberships.length}
+            </p>
+            <Link
+              href="/collections"
+              className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+        </aside>
+      </div>
     </PageContainer>
   );
 }

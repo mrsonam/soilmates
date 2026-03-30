@@ -3,6 +3,10 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getPlantDetailBySlugs } from "@/lib/plants/plant-detail";
 import { getPlantCareLogs } from "@/lib/plants/care-logs";
+import { getPlantImagesForGallery } from "@/lib/plants/plant-images";
+import { getPlantRemindersForMember } from "@/lib/reminders/queries";
+import { getPlantActivityForMember } from "@/lib/activity/queries";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlantDetailView } from "@/components/plants/detail/plant-detail-view";
 
@@ -20,12 +24,17 @@ export default async function PlantCareHistoryPage({ params }: Props) {
   }
 
   const { collectionSlug, plantSlug } = await params;
-  const [plant, careLogs] = await Promise.all([
+  const [plant, careLogs, galleryImages, remindersPayload, plantActivity] =
+    await Promise.all([
     getPlantDetailBySlugs(session.user.id, collectionSlug, plantSlug),
     getPlantCareLogs(session.user.id, collectionSlug, plantSlug),
+    getPlantImagesForGallery(session.user.id, collectionSlug, plantSlug),
+    getPlantRemindersForMember(session.user.id, collectionSlug, plantSlug),
+    getPlantActivityForMember(session.user.id, collectionSlug, plantSlug, 12),
   ]);
+  const reminders = remindersPayload ?? [];
 
-  if (!plant || careLogs === null) {
+  if (!plant || careLogs === null || galleryImages === null) {
     notFound();
   }
 
@@ -45,6 +54,10 @@ export default async function PlantCareHistoryPage({ params }: Props) {
         careLogs={careLogs}
         currentUserId={session.user.id}
         initialTab="care_history"
+        galleryImages={galleryImages}
+        uploadsEnabled={isSupabaseStorageConfigured()}
+        reminders={reminders}
+        plantActivity={plantActivity}
       />
     </PageContainer>
   );

@@ -21,6 +21,7 @@ export default async function CollectionsListPage() {
     memberCount: c.memberCount,
     plantCount: c.plantCount,
     areaCount: c.areaCount,
+    coverImageSignedUrl: c.coverImageSignedUrl,
   }));
 
   return (

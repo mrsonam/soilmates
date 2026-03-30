@@ -171,7 +171,7 @@ export function CareLogFormDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed left-1/2 top-1/2 z-60 w-[min(100vw-1rem,32rem)] max-h-[min(92dvh,44rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border-0 bg-surface-container-lowest p-0 shadow-[0_28px_56px_-16px_rgba(27,28,26,0.18)] backdrop:bg-on-surface/25 backdrop:backdrop-blur-sm sm:w-[min(100vw-2rem,36rem)]"
+      className="fixed left-1/2 top-1/2 z-60 w-[min(100vw-1rem,32rem)] max-h-[min(92dvh,44rem)] -translate-x-1/2 -translate-y-1/2 modal-scroll rounded-3xl border-0 bg-surface-container-lowest p-0 shadow-[0_28px_56px_-16px_rgba(27,28,26,0.18)] backdrop:bg-on-surface/25 backdrop:backdrop-blur-sm sm:w-[min(100vw-2rem,36rem)]"
       aria-labelledby="care-log-form-title"
       onClose={onClose}
       onCancel={(ev) => {
@@ -214,7 +214,7 @@ export function CareLogFormDialog({
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
               Action type
             </p>
-            <div className="mt-2 flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1">
+            <div className="modal-scroll mt-2 flex max-h-40 flex-wrap gap-2 pr-1">
               {CARE_LOG_ACTION_OPTIONS.map(({ value, label, Icon }) => (
                 <button
                   key={value}

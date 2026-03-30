@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCollectionIdForActiveMember } from "@/lib/collections/access";
+import { syncRemindersFromCareLogSafe } from "@/lib/reminders/sync-from-care-log";
 import { quickCareActionSchema } from "@/lib/validations/care-log";
+import { createActivityEvent } from "@/lib/activity/create-event";
+import { ActivityEventTypes } from "@/lib/activity/event-types";
+import { getActorLabel } from "@/lib/activity/actor-label";
+import { careActionVerbPast } from "@/lib/activity/care-verb";
 export type QuickCareLogResult = { ok: true } | { ok: false; error: string };
 
 export async function createQuickCareLogAction(input: {
@@ -43,17 +48,18 @@ export async function createQuickCareLogAction(input: {
       slug: plantSlug,
       archivedAt: null,
     },
-    select: { id: true },
+    select: { id: true, nickname: true },
   });
   if (!plant) {
     return { ok: false, error: "Plant not found." };
   }
 
   const now = new Date();
+  const careLogId = randomUUID();
   try {
     await prisma.careLog.create({
       data: {
-        id: randomUUID(),
+        id: careLogId,
         plantId: plant.id,
         createdById: session.user.id,
         actionType: parsed.data,
@@ -68,12 +74,41 @@ export async function createQuickCareLogAction(input: {
     return { ok: false, error: "Could not save care log. Try again." };
   }
 
+  try {
+    const who = await getActorLabel(session.user.id);
+    const verb = careActionVerbPast(parsed.data);
+    await createActivityEvent({
+      collectionId,
+      plantId: plant.id,
+      actorUserId: session.user.id,
+      eventType: ActivityEventTypes.careLogAdded,
+      summary: `${who} ${verb} ${plant.nickname}`,
+      payload: {
+        careLogId,
+        actionType: parsed.data,
+      },
+      collectionSlug,
+      plantSlug,
+    });
+  } catch (e) {
+    console.error("activity event", e);
+  }
+
+  syncRemindersFromCareLogSafe({
+    userId: session.user.id,
+    plantId: plant.id,
+    careLogId,
+    actionType: parsed.data,
+    actionAt: now,
+  });
+
   revalidatePath(`/collections/${collectionSlug}/plants/${plantSlug}`);
   revalidatePath(
     `/collections/${collectionSlug}/plants/${plantSlug}/history`,
   );
   revalidatePath(`/collections/${collectionSlug}/plants`);
   revalidatePath("/plants");
+  revalidatePath("/dashboard");
 
   return { ok: true };
 }

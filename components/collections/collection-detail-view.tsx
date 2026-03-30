@@ -1,16 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Calendar,
-  Droplets,
-  LayoutDashboard,
-  MapPin,
-  Sprout,
-  Sun,
-  Users,
-} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Calendar, Droplets, Sprout, Sun } from "lucide-react";
 import { useCollectionPageActions } from "@/components/layout/collection-page-actions";
 import { CollectionStatsCards } from "@/components/collection-detail/collection-stats-cards";
 import { AreasSection } from "@/components/areas/areas-section";
@@ -18,48 +11,10 @@ import { CreateAreaDialog } from "@/components/areas/create-area-dialog";
 import { EditAreaDialog } from "@/components/areas/edit-area-dialog";
 import { gradientClassForAreaId } from "@/components/areas/area-visuals";
 import type { AreaForCollectionDetail } from "@/lib/collections/collection-detail";
-import type { PlantListItem } from "@/lib/plants/queries";
-import { PlantsPageView } from "@/components/plants/plants-page-view";
-
-const TABS = [
-  { id: "overview" as const, label: "Overview", Icon: LayoutDashboard },
-  { id: "areas" as const, label: "Areas", Icon: MapPin },
-  { id: "plants" as const, label: "Plants", Icon: Sprout },
-  { id: "members" as const, label: "Members", Icon: Users },
-];
-
-type ActivityRow = {
-  id: string;
-  title: string;
-  meta: string;
-  badge: string;
-  badgeClass: string;
-};
-
-const MOCK_ACTIVITY: ActivityRow[] = [
-  {
-    id: "1",
-    title: "Monstera watered in Living Room",
-    meta: "Updated by Alex · 2 hours ago",
-    badge: "Routine care",
-    badgeClass:
-      "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant/15",
-  },
-  {
-    id: "2",
-    title: "New pothos added to Bedroom",
-    meta: "Updated by Sam · Yesterday",
-    badge: "New plant",
-    badgeClass: "bg-[#f0d4dc]/50 text-[#5c3d45] ring-1 ring-[#e0c4cc]/40",
-  },
-  {
-    id: "3",
-    title: "Fiddle leaf rotated for even light",
-    meta: "Updated by Alex · 3 days ago",
-    badge: "Growth task",
-    badgeClass: "bg-[#f2d4b8]/60 text-[#5c4a38] ring-1 ring-[#e8c9a8]/50",
-  },
-];
+import { InlineCoverEdit } from "@/components/collections/inline-cover-edit";
+import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
+import type { ActivityFeedItem } from "@/lib/activity/queries";
+import { CollectionActivityPreview } from "@/components/activity/collection-activity-preview";
 
 type CollectionDetailViewProps = {
   collectionSlug: string;
@@ -70,7 +25,9 @@ type CollectionDetailViewProps = {
   plantCount: number;
   areaCount: number;
   areas: AreaForCollectionDetail[];
-  plants: PlantListItem[];
+  collectionCoverUrl: string | null;
+  uploadsEnabled: boolean;
+  activityPreview: ActivityFeedItem[];
 };
 
 export function CollectionDetailView({
@@ -82,10 +39,18 @@ export function CollectionDetailView({
   plantCount,
   areaCount,
   areas,
-  plants,
+  collectionCoverUrl,
+  uploadsEnabled,
+  activityPreview,
 }: CollectionDetailViewProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = useMemo(() => {
+    const t = searchParams.get("tab");
+    if (t === "areas" || t === "members") return t;
+    return "overview" as const;
+  }, [searchParams]);
   const pageActions = useCollectionPageActions();
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
   const [createAreaOpen, setCreateAreaOpen] = useState(false);
   const [editArea, setEditArea] = useState<AreaForCollectionDetail | null>(null);
 
@@ -114,34 +79,7 @@ export function CollectionDetailView({
         </p>
       ) : null}
 
-      <div
-        className="flex gap-1 overflow-x-auto border-b border-outline-variant/15 pb-px"
-        role="tablist"
-        aria-label="Collection sections"
-      >
-        {TABS.map((t) => {
-          const Icon = t.Icon;
-          const selected = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => setTab(t.id)}
-              className={[
-                "flex min-w-0 shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition",
-                selected
-                  ? "-mb-px border-primary text-primary"
-                  : "border-transparent text-on-surface-variant hover:text-on-surface",
-              ].join(" ")}
-            >
-              <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <CollectionSectionTabs collectionSlug={collectionSlug} />
 
       {tab === "overview" && (
         <div className="mt-6 space-y-8 sm:space-y-10">
@@ -180,7 +118,11 @@ export function CollectionDetailView({
                     </Link>
                     <button
                       type="button"
-                      onClick={() => setTab("areas")}
+                      onClick={() => {
+                        void router.push(
+                          `/collections/${collectionSlug}?tab=areas`,
+                        );
+                      }}
                       className="inline-flex h-11 items-center justify-center rounded-full bg-surface-container-lowest px-6 text-sm font-medium text-on-surface ring-1 ring-outline-variant/20 transition hover:bg-surface-container-high"
                     >
                       Area reports
@@ -194,19 +136,44 @@ export function CollectionDetailView({
                     </span>
                   </p>
                 </div>
-                <div
-                  className="relative min-h-[14rem] flex-1 bg-gradient-to-br from-primary-fixed/40 via-surface-container-low to-primary-fixed-dim/50 lg:min-h-0"
-                  aria-hidden
-                >
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(81,100,71,0.15),transparent_55%)]" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_80%,rgba(212,233,196,0.5),transparent_45%)]" />
-                  <Sprout
-                    className="absolute bottom-6 right-8 size-32 text-primary/25 sm:size-40"
-                    strokeWidth={1}
-                  />
-                  <Sprout
-                    className="absolute right-1/4 top-10 size-20 rotate-12 text-primary/20"
-                    strokeWidth={1}
+                <div className="relative min-h-[14rem] flex-1 overflow-hidden lg:min-h-0">
+                  {collectionCoverUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
+                      <img
+                        src={collectionCoverUrl}
+                        alt=""
+                        className="absolute inset-0 size-full object-cover"
+                      />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-r from-surface-container-low/95 via-surface-container-low/40 to-transparent"
+                        aria-hidden
+                      />
+                    </>
+                  ) : (
+                    <div
+                      className="absolute inset-0 bg-gradient-to-br from-primary-fixed/40 via-surface-container-low to-primary-fixed-dim/50"
+                      aria-hidden
+                    >
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(81,100,71,0.15),transparent_55%)]" />
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_80%,rgba(212,233,196,0.5),transparent_45%)]" />
+                      <Sprout
+                        className="absolute bottom-6 right-8 size-32 text-primary/25 sm:size-40"
+                        strokeWidth={1}
+                        aria-hidden
+                      />
+                      <Sprout
+                        className="absolute right-1/4 top-10 size-20 rotate-12 text-primary/20"
+                        strokeWidth={1}
+                        aria-hidden
+                      />
+                    </div>
+                  )}
+                  <InlineCoverEdit
+                    variant="collection"
+                    collectionSlug={collectionSlug}
+                    currentUrl={collectionCoverUrl}
+                    uploadsEnabled={uploadsEnabled}
                   />
                 </div>
               </div>
@@ -306,41 +273,18 @@ export function CollectionDetailView({
                 Recent activity
               </h3>
               <Link
-                href="/activity"
+                href={`/collections/${collectionSlug}/activity`}
                 className="text-sm font-medium text-primary transition hover:underline"
               >
-                View all history
+                View all activity
               </Link>
             </div>
-            <ul className="mt-6 divide-y divide-outline-variant/10">
-              {MOCK_ACTIVITY.map((row) => (
-                <li
-                  key={row.id}
-                  className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:items-center sm:gap-4"
-                >
-                  <div
-                    className="size-12 shrink-0 rounded-full bg-gradient-to-br from-primary-fixed to-primary-fixed-dim ring-2 ring-surface"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-on-surface">
-                      {row.title}
-                    </p>
-                    <p className="mt-0.5 text-xs text-on-surface-variant">
-                      {row.meta}
-                    </p>
-                  </div>
-                  <span
-                    className={[
-                      "w-fit shrink-0 rounded-full px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide",
-                      row.badgeClass,
-                    ].join(" ")}
-                  >
-                    {row.badge}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6">
+              <CollectionActivityPreview
+                collectionSlug={collectionSlug}
+                items={activityPreview}
+              />
+            </div>
           </section>
 
           <section>
@@ -351,7 +295,7 @@ export function CollectionDetailView({
               <button
                 type="button"
                 onClick={() => {
-                  setTab("areas");
+                  void router.push(`/collections/${collectionSlug}?tab=areas`);
                   openCreateArea();
                 }}
                 className="text-sm font-medium text-primary transition hover:underline"
@@ -376,8 +320,18 @@ export function CollectionDetailView({
                       className="group block overflow-hidden rounded-3xl ring-1 ring-outline-variant/[0.08] transition hover:ring-primary/20"
                     >
                       <div
-                        className={`relative aspect-[3/4] bg-gradient-to-b ${gradientClassForAreaId(area.id)}`}
+                        className={`relative aspect-[3/4] overflow-hidden bg-gradient-to-b ${gradientClassForAreaId(area.id)}`}
                       >
+                        {area.coverImageSignedUrl ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
+                            <img
+                              src={area.coverImageSignedUrl}
+                              alt=""
+                              className="absolute inset-0 size-full object-cover"
+                            />
+                          </>
+                        ) : null}
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-on-surface/75 via-on-surface/35 to-transparent px-4 pb-4 pt-16">
                           <p className="font-display text-lg font-semibold text-surface">
                             {area.name}
@@ -415,17 +369,6 @@ export function CollectionDetailView({
         />
       )}
 
-      {tab === "plants" && (
-        <div className="mt-6">
-          <PlantsPageView
-            variant="collection"
-            collectionSlug={collectionSlug}
-            collectionName={name}
-            plants={plants}
-          />
-        </div>
-      )}
-
       {tab === "members" && (
         <div className="mt-6 space-y-4">
           <p className="text-sm text-on-surface-variant">
@@ -446,12 +389,14 @@ export function CollectionDetailView({
         open={createAreaOpen}
         onClose={() => setCreateAreaOpen(false)}
         collectionSlug={collectionSlug}
+        uploadsEnabled={uploadsEnabled}
       />
       <EditAreaDialog
         open={editArea !== null}
         onClose={() => setEditArea(null)}
         collectionSlug={collectionSlug}
         area={editArea}
+        uploadsEnabled={uploadsEnabled}
       />
     </div>
   );

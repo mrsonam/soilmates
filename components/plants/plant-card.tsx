@@ -21,11 +21,11 @@ export function PlantCard({ plant, showCollectionLabel }: PlantCardProps) {
       className="group block overflow-hidden rounded-3xl bg-surface-container-lowest shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-16px_rgba(27,28,26,0.1)] hover:ring-primary/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
     >
       <div className="relative">
-        {plant.primaryImageUrl ? (
+        {plant.coverImageUrl ? (
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-container-low">
-            {/* eslint-disable-next-line @next/next/no-img-element -- user-supplied URL */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- signed or legacy URL */}
             <img
-              src={plant.primaryImageUrl}
+              src={plant.coverImageUrl}
               alt=""
               className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-[1.02]"
             />

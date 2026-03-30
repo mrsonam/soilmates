@@ -21,7 +21,13 @@ export function useCollectionsCreate() {
   return useContext(CollectionsCreateContext);
 }
 
-export function CollectionsCreateProvider({ children }: { children: ReactNode }) {
+export function CollectionsCreateProvider({
+  children,
+  uploadsEnabled,
+}: {
+  children: ReactNode;
+  uploadsEnabled: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const openCreateCollection = useCallback(() => setOpen(true), []);
   const value = useMemo(
@@ -32,7 +38,11 @@ export function CollectionsCreateProvider({ children }: { children: ReactNode })
   return (
     <CollectionsCreateContext.Provider value={value}>
       {children}
-      <CreateCollectionDialog open={open} onClose={() => setOpen(false)} />
+      <CreateCollectionDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        uploadsEnabled={uploadsEnabled}
+      />
     </CollectionsCreateContext.Provider>
   );
 }

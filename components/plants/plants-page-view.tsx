@@ -6,6 +6,7 @@ import type { PlantListItem } from "@/lib/plants/queries";
 import { PlantsGrid } from "./plants-grid";
 import { PlantsEmptyState } from "./plants-empty-state";
 import { PlantsScreenHeader } from "./plants-screen-header";
+import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
 
 type PlantsPageViewCollection = {
   variant: "collection";
@@ -146,6 +147,12 @@ export function PlantsPageView(props: PlantsPageViewProps) {
 
   return (
     <div>
+      {!isAll && (
+        <CollectionSectionTabs
+          collectionSlug={props.collectionSlug}
+          className="mb-8"
+        />
+      )}
       <PlantsScreenHeader
         eyebrow={eyebrow}
         title="Plants"

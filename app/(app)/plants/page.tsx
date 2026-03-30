@@ -1,7 +1,10 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getFirstCollectionSlugForUser } from "@/lib/collections/memberships";
-import { getAllPlantsForActiveMember } from "@/lib/plants/queries";
+import {
+  getAllPlantsForActiveMember,
+  getGlobalPlantCreateDependencies,
+} from "@/lib/plants/queries";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlantsPageView } from "@/components/plants/plants-page-view";
 
@@ -12,15 +15,18 @@ export default async function PlantsPage() {
   }
 
   const userId = session.user.id;
-  const [plants, firstSlug] = await Promise.all([
+  const [plants, globalCreateDeps, firstSlug] = await Promise.all([
     getAllPlantsForActiveMember(userId),
+    getGlobalPlantCreateDependencies(userId),
     getFirstCollectionSlugForUser(userId),
   ]);
 
   const hasCollections = firstSlug !== null;
-  const addPlantHref = firstSlug
-    ? `/collections/${firstSlug}/plants/new`
-    : "/collections";
+  const addPlantHref = globalCreateDeps
+    ? "/plants/new"
+    : firstSlug
+      ? `/collections/${firstSlug}/plants/new`
+      : "/collections";
 
   return (
     <PageContainer>

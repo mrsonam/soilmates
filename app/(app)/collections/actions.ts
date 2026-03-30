@@ -7,7 +7,15 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveUniqueCollectionSlug } from "@/lib/collections/slug";
 import { createCollectionSchema } from "@/lib/validations/collection";
+import {
+  setCollectionCoverFromFile,
+  validateCoverImageFile,
+} from "@/lib/collections/cover-storage";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { CollectionMemberStatus } from "@prisma/client";
+import { createActivityEvent } from "@/lib/activity/create-event";
+import { ActivityEventTypes } from "@/lib/activity/event-types";
+import { getActorLabel } from "@/lib/activity/actor-label";
 import type { CreateCollectionFormState } from "./create-collection-form-state";
 
 export async function createCollectionInAppAction(
@@ -29,6 +37,19 @@ export async function createCollectionInAppAction(
     };
   }
 
+  const coverFile = formData.get("coverImage") as File | null;
+  const storageOn = isSupabaseStorageConfigured();
+
+  if (storageOn) {
+    if (!coverFile || coverFile.size === 0) {
+      return { error: "Add a cover photo for your collection." };
+    }
+    const chk = validateCoverImageFile(coverFile);
+    if (!chk.ok) {
+      return { error: chk.error };
+    }
+  }
+
   const userId = session.user.id;
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
@@ -38,7 +59,7 @@ export async function createCollectionInAppAction(
     return { error: "Profile not found. Try signing out and back in." };
   }
 
-  let collection: { slug: string };
+  let collection: { id: string; slug: string };
   try {
     collection = await prisma.$transaction(async (tx) => {
       const slug = await resolveUniqueCollectionSlug(parsed.data.name, tx);
@@ -59,11 +80,43 @@ export async function createCollectionInAppAction(
           status: CollectionMemberStatus.active,
         },
       });
-      return col;
+      return { id: col.id, slug: col.slug };
     });
   } catch (e) {
     console.error(e);
     return { error: "Could not create collection. Try again." };
+  }
+
+  try {
+    const who = await getActorLabel(userId);
+    const colName = parsed.data.name.trim();
+    await createActivityEvent({
+      collectionId: collection.id,
+      actorUserId: userId,
+      eventType: ActivityEventTypes.collectionCreated,
+      summary: `${who} created ${colName}`,
+      payload: { name: colName },
+      collectionSlug: collection.slug,
+    });
+  } catch (e) {
+    console.error("activity event", e);
+  }
+
+  if (storageOn && coverFile && coverFile.size > 0) {
+    const up = await setCollectionCoverFromFile(
+      userId,
+      collection.slug,
+      coverFile,
+    );
+    if (!up.ok) {
+      try {
+        await prisma.collection.delete({ where: { id: collection.id } });
+      } catch (delErr) {
+        console.error(delErr);
+      }
+      return { error: up.error };
+    }
+    revalidatePath(`/collections/${collection.slug}`);
   }
 
   revalidatePath("/collections");

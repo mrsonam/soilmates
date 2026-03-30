@@ -7,6 +7,7 @@ import { titleForPath } from "@/lib/layout/nav-config";
 import type { CollectionOption } from "./collection-switcher";
 import { CollectionsSearchField } from "./collections-search-field";
 import { CollectionSearchField } from "./collection-search-field";
+import { PlantsSearchField } from "@/components/dashboard/plants-search-field";
 import { useCollectionsCreate } from "./collections-create-provider";
 import { useCollectionHeaderState } from "./collection-header-context";
 import { useCollectionPageActions } from "./collection-page-actions";
@@ -66,48 +67,102 @@ export function AppHeader({ collections, user }: AppHeaderProps) {
   }
 
   if (pathname === "/dashboard") {
-    subtitle = "Overview";
+    subtitle = null;
+    title = "";
   }
 
   const display = user.name?.trim() || user.email.split("@")[0] || "Account";
   const isCollectionsList =
     pathname === "/collections" || pathname.startsWith("/collections?");
 
+  const areaHeader = collectionHeaderState.areaHeader;
+
   const collectionDetailTagline =
-    isCollectionDetail && collectionHeaderState.subtitleLine
+    !areaHeader &&
+    isCollectionDetail &&
+    collectionHeaderState.subtitleLine
       ? collectionHeaderState.subtitleLine
       : null;
 
+  const isDashboard = pathname === "/dashboard";
+
   const showCenterSearch =
-    isCollectionsList ||
-    (isCollectionDetail && collectionHeaderState.showCollectionSearch);
+    !areaHeader &&
+    !isDashboard &&
+    (isCollectionsList ||
+      (isCollectionDetail && collectionHeaderState.showCollectionSearch));
 
   return (
     <header className="sticky top-0 z-30 border-b border-outline-variant/10 bg-surface/90 backdrop-blur-xl">
       <div
         className={[
           "flex flex-col px-4 sm:px-6 lg:px-8",
-          isCollectionsList
-            ? "gap-3 py-3 sm:py-4"
-            : isCollectionDetail
-              ? "gap-3 py-3 sm:py-3.5"
-              : "min-h-14 justify-center gap-0 py-2 sm:min-h-[3.75rem] sm:py-0",
+          isDashboard
+            ? "gap-0 py-3 sm:py-4"
+            : isCollectionsList
+              ? "gap-3 py-3 sm:py-4"
+              : isCollectionDetail
+                ? "gap-3 py-3 sm:py-3.5"
+                : "min-h-14 justify-center gap-0 py-2 sm:min-h-[3.75rem] sm:py-0",
         ].join(" ")}
       >
+        {isDashboard ? (
+          <div className="flex items-center gap-3 lg:gap-4">
+            <div className="min-w-0 flex-1 md:max-w-2xl md:mx-auto">
+              <PlantsSearchField />
+            </div>
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                className="relative flex size-10 items-center justify-center rounded-xl text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
+                aria-label="Notifications (coming soon)"
+              >
+                <Bell className="size-[1.35rem]" strokeWidth={1.5} />
+                <span
+                  className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 ring-2 ring-surface/90"
+                  aria-hidden
+                />
+              </button>
+              <Link
+                href="/settings"
+                className="flex size-10 items-center justify-center rounded-full bg-surface-container-low text-sm font-semibold text-primary ring-1 ring-outline-variant/10 transition hover:bg-surface-container-high"
+                aria-label="Account settings"
+              >
+                {display.slice(0, 1).toUpperCase()}
+              </Link>
+            </div>
+          </div>
+        ) : (
         <div className="flex items-center gap-3 lg:gap-4">
           <div className="min-w-0 flex-1">
-            {subtitle && (
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
-                {subtitle}
-              </p>
-            )}
-            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-on-surface sm:text-xl">
-              {title}
-            </h1>
-            {collectionDetailTagline && (
-              <p className="mt-0.5 truncate text-sm text-on-surface-variant">
-                {collectionDetailTagline}
-              </p>
+            {areaHeader ? (
+              <>
+                <p className="text-sm text-on-surface-variant">{areaHeader.eyebrow}</p>
+                <h1 className="truncate font-display text-lg font-semibold tracking-tight text-on-surface sm:text-xl">
+                  {areaHeader.title}
+                </h1>
+                {areaHeader.tagline ? (
+                  <p className="mt-0.5 line-clamp-2 text-sm text-on-surface-variant">
+                    {areaHeader.tagline}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {subtitle && (
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    {subtitle}
+                  </p>
+                )}
+                <h1 className="truncate font-display text-lg font-semibold tracking-tight text-on-surface sm:text-xl">
+                  {title}
+                </h1>
+                {collectionDetailTagline && (
+                  <p className="mt-0.5 truncate text-sm text-on-surface-variant">
+                    {collectionDetailTagline}
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -143,7 +198,9 @@ export function AppHeader({ collections, user }: AppHeaderProps) {
               </>
             )}
 
-            {isCollectionDetail && collectionPageActions?.hasCreateAreaHandler && (
+            {isCollectionDetail &&
+              !areaHeader &&
+              collectionPageActions?.hasCreateAreaHandler && (
               <>
                 <button
                   type="button"
@@ -164,7 +221,7 @@ export function AppHeader({ collections, user }: AppHeaderProps) {
               </>
             )}
 
-            {isCollectionDetail && (
+            {isCollectionDetail && !areaHeader && (
               <button
                 type="button"
                 disabled
@@ -177,10 +234,14 @@ export function AppHeader({ collections, user }: AppHeaderProps) {
 
             <button
               type="button"
-              className="flex size-10 items-center justify-center rounded-xl text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
+              className="relative flex size-10 items-center justify-center rounded-xl text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
               aria-label="Notifications (coming soon)"
             >
               <Bell className="size-[1.35rem]" strokeWidth={1.5} />
+              <span
+                className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 ring-2 ring-surface/90"
+                aria-hidden
+              />
             </button>
             <Link
               href="/settings"
@@ -191,13 +252,16 @@ export function AppHeader({ collections, user }: AppHeaderProps) {
             </Link>
           </div>
         </div>
+        )}
 
         {isCollectionsList && (
           <div className="md:hidden">
             <CollectionsSearchField />
           </div>
         )}
-        {isCollectionDetail && collectionHeaderState.showCollectionSearch && (
+        {!areaHeader &&
+          isCollectionDetail &&
+          collectionHeaderState.showCollectionSearch && (
           <div className="md:hidden">
             <CollectionSearchField />
           </div>

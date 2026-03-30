@@ -45,3 +45,17 @@ body {
 .font-display {
   font-family: var(--font-manrope), ui-sans-serif, system-ui;
 }
+
+/**
+ * Scrollable panels/modals without a visible scrollbar (still mouse wheel / touch scroll).
+ */
+@layer utilities {
+  .modal-scroll {
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .modal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}

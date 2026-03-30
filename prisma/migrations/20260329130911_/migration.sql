@@ -1,8 +1,5 @@
--- DropIndex
-DROP INDEX "care_logs_plant_id_action_at_idx";
-
--- AlterTable
-ALTER TABLE "care_logs" ALTER COLUMN "updated_at" DROP DEFAULT;
-
--- CreateIndex
-CREATE INDEX "care_logs_plant_id_action_at_idx" ON "care_logs"("plant_id", "action_at");
+-- Historical migration id kept so `_prisma_migrations` stays aligned with databases
+-- that already ran the original script. The original SQL ran out of order (before
+-- `care_logs` existed) and duplicated work from `20260330220000_care_logs_detailed`.
+-- This file is intentionally a no-op for fresh applies.
+SELECT 1;

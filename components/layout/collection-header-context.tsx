@@ -9,14 +9,23 @@ import {
   type ReactNode,
 } from "react";
 
+/** When set, the app header shows an area detail title block (see `AreaHeaderSync`). */
+export type AreaHeaderPayload = {
+  eyebrow: string;
+  title: string;
+  tagline: string | null;
+};
+
 type CollectionHeaderState = {
   subtitleLine: string | null;
   showCollectionSearch: boolean;
+  areaHeader: AreaHeaderPayload | null;
 };
 
 const initial: CollectionHeaderState = {
   subtitleLine: null,
   showCollectionSearch: false,
+  areaHeader: null,
 };
 
 type CollectionHeaderDispatch = {

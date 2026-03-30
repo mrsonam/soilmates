@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { CollectionMemberStatus } from "@prisma/client";
+import {
+  createSignedUrlsForPaths,
+  isSupabaseStorageConfigured,
+} from "@/lib/supabase/admin";
 
 const activeMemberWhere = {
   status: "active" as const,
@@ -75,6 +79,8 @@ export type CollectionWithStats = {
   memberCount: number;
   plantCount: number;
   areaCount: number;
+  /** Signed URL for collection cover when storage is configured. */
+  coverImageSignedUrl: string | null;
 };
 
 /** Active, non-archived collections the user belongs to, with aggregate stats. */
@@ -97,6 +103,7 @@ export async function getCollectionsWithStatsForUser(
       slug: true,
       description: true,
       createdAt: true,
+      coverImageStoragePath: true,
     },
   });
 
@@ -131,10 +138,25 @@ export async function getCollectionsWithStatsForUser(
     plantGroups.map((g) => [g.collectionId, g._count._all]),
   );
 
+  const pathsToSign = collections
+    .map((c) => c.coverImageStoragePath)
+    .filter((p): p is string => Boolean(p));
+  const signed =
+    isSupabaseStorageConfigured() && pathsToSign.length > 0
+      ? await createSignedUrlsForPaths(pathsToSign)
+      : new Map<string, string>();
+
   return collections.map((c) => ({
-    ...c,
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description,
+    createdAt: c.createdAt,
     memberCount: memberCountByCollection[c.id] ?? 0,
     plantCount: plantCountByCollection[c.id] ?? 0,
     areaCount: areaCountByCollection[c.id] ?? 0,
+    coverImageSignedUrl: c.coverImageStoragePath
+      ? (signed.get(c.coverImageStoragePath) ?? null)
+      : null,
   }));
 }

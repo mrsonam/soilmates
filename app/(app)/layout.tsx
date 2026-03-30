@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getActiveMembershipsForUser } from "@/lib/collections/memberships";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { AppShell } from "@/components/layout/app-shell";
 
 export default async function AuthenticatedAppLayout({
@@ -25,6 +26,7 @@ export default async function AuthenticatedAppLayout({
   return (
     <AppShell
       collections={collections}
+      uploadsEnabled={isSupabaseStorageConfigured()}
       user={{
         name: session.user.name,
         email: session.user.email ?? "",

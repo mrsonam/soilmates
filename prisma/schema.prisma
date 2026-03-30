@@ -42,6 +42,14 @@ enum PlantAcquisitionType {
   other
 }
 
+/// Stored as `image_type` — supports future diagnosis and care-log attachments.
+enum PlantImageType {
+  cover
+  progress
+  diagnosis
+  log_attachment
+}
+
 enum CareLogActionType {
   watered
   fertilized
@@ -77,6 +85,10 @@ model Profile {
   collectionInvitedAs     CollectionMember[]     @relation("MemberInvitedBy")
   collectionInvitesSent   CollectionInvite[]     @relation("InviteInvitedBy")
   careLogsCreated         CareLog[]              @relation("CareLogCreatedBy")
+  plantImagesUploaded     PlantImage[]           @relation("PlantImageUploadedBy")
+  remindersCreated        Reminder[]             @relation("ReminderCreatedBy")
+  reminderEventsCreated   ReminderEvent[]        @relation("ReminderEventCreatedBy")
+  activityEventsAsActor   ActivityEvent[]        @relation("ActivityEventActor")
 
   @@map("profiles")
 }
@@ -86,6 +98,9 @@ model Collection {
   slug        String    @unique
   name        String
   description String?
+  /// Private Supabase Storage path for collection hero/cover (same bucket as plant images).
+  coverImageStoragePath String? @map("cover_image_storage_path")
+  coverImageMimeType    String? @map("cover_image_mime_type")
   createdById String    @map("created_by") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -94,8 +109,11 @@ model Collection {
   createdBy Profile             @relation("CollectionCreatedBy", fields: [createdById], references: [id])
   members   CollectionMember[]
   invites   CollectionInvite[]
-  areas     Area[]
-  plants    Plant[]
+  areas       Area[]
+  plants      Plant[]
+  plantImages PlantImage[]
+  reminders   Reminder[]
+  activityEvents ActivityEvent[]
 
   @@map("collections")
 }
@@ -107,6 +125,8 @@ model Area {
   slug         String    @db.VarChar(80)
   name         String
   description  String?
+  coverImageStoragePath String? @map("cover_image_storage_path")
+  coverImageMimeType    String? @map("cover_image_mime_type")
   sortOrder    Int       @default(0) @map("sort_order")
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -138,15 +158,21 @@ model Plant {
   acquiredAt            DateTime?              @map("acquired_at") @db.Date
   notes                 String?
   primaryImageUrl       String?                @map("primary_image_url")
+  /// Points to the hero/cover image in `plant_images` (private storage).
+  primaryImageId        String?                @unique @map("primary_image_id") @db.Uuid
   growthProgressPercent Int?                   @map("growth_progress_percent") @db.SmallInt
   isFavorite            Boolean                @default(false) @map("is_favorite")
   createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
   archivedAt            DateTime?              @map("archived_at") @db.Timestamptz(6)
 
-  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  area       Area       @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  careLogs   CareLog[]
+  collection   Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  area         Area          @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  careLogs     CareLog[]
+  images       PlantImage[]  @relation("PlantImages")
+  primaryImage PlantImage?   @relation("PlantPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
+  reminders    Reminder[]
+  activityEvents ActivityEvent[]
 
   @@unique([collectionId, slug])
   @@index([collectionId, archivedAt])
@@ -170,12 +196,46 @@ model CareLog {
   updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt   DateTime?         @map("deleted_at") @db.Timestamptz(6)
 
-  plant     Plant   @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  createdBy Profile @relation("CareLogCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  plant       Plant        @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy   Profile      @relation("CareLogCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  plantImages PlantImage[]
+  reminderEvents ReminderEvent[]
 
   @@index([plantId, actionAt])
   @@index([plantId, deletedAt])
   @@map("care_logs")
+}
+
+/// Private Supabase Storage metadata; files are never public URLs.
+model PlantImage {
+  id            String        @id @default(uuid()) @db.Uuid
+  collectionId  String        @map("collection_id") @db.Uuid
+  plantId       String        @map("plant_id") @db.Uuid
+  careLogId     String?       @map("care_log_id") @db.Uuid
+  diagnosisId   String?       @map("diagnosis_id") @db.Uuid
+  imageType     PlantImageType @map("image_type")
+  storagePath   String        @map("storage_path")
+  mimeType      String        @map("mime_type")
+  fileSize      Int           @map("file_size")
+  width         Int?
+  height        Int?
+  capturedAt    DateTime?     @map("captured_at") @db.Timestamptz(6)
+  uploadedById  String        @map("uploaded_by") @db.Uuid
+  metadata      Json?         @db.JsonB
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz(6)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant      Plant      @relation("PlantImages", fields: [plantId], references: [id], onDelete: Cascade)
+  careLog    CareLog?   @relation(fields: [careLogId], references: [id], onDelete: SetNull)
+  uploadedBy Profile    @relation("PlantImageUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
+  primaryForPlant Plant? @relation("PlantPrimaryImage")
+
+  @@index([plantId, deletedAt])
+  @@index([collectionId, deletedAt])
+  @@index([careLogId])
+  @@map("plant_images")
 }
 
 model CollectionMember {
@@ -210,4 +270,112 @@ model CollectionInvite {
   invitedBy  Profile    @relation("InviteInvitedBy", fields: [invitedById], references: [id])
 
   @@map("collection_invites")
+}
+
+/// Recurring care reminders for a plant (collection-scoped).
+enum ReminderType {
+  watering
+  fertilizing
+  misting
+  pruning
+  repotting
+  soil_change
+  rotation
+  pest_check
+  observation
+  custom
+}
+
+enum ReminderSource {
+  user
+  ai_recommended
+}
+
+enum ReminderPreferredWindow {
+  morning
+  afternoon
+  evening
+  flexible
+}
+
+enum ReminderEventType {
+  created
+  completed
+  updated
+  paused
+  resumed
+  archived
+  care_log_matched
+}
+
+model Reminder {
+  id                  String                  @id @db.Uuid
+  collectionId      String                  @map("collection_id") @db.Uuid
+  plantId             String                  @map("plant_id") @db.Uuid
+  reminderType      ReminderType            @map("reminder_type")
+  title               String
+  description         String?
+  source              ReminderSource          @default(user)
+  /// JSON: { "intervalValue": number, "intervalUnit": "days" | "weeks" | "months" }
+  recurrenceRule    Json                    @map("recurrence_rule") @db.JsonB
+  preferredWindow ReminderPreferredWindow? @map("preferred_window")
+  gracePeriodHours  Int?                    @map("grace_period_hours")
+  overdueAfterHours Int?                    @map("overdue_after_hours")
+  lastCompletedAt   DateTime?               @map("last_completed_at") @db.Timestamptz(6)
+  nextDueAt         DateTime                @map("next_due_at") @db.Timestamptz(6)
+  isPaused          Boolean                 @default(false) @map("is_paused")
+  pausedUntil       DateTime?               @map("paused_until") @db.Timestamptz(6)
+  isActive          Boolean                 @default(true) @map("is_active")
+  createdById       String                  @map("created_by") @db.Uuid
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt        DateTime?               @map("archived_at") @db.Timestamptz(6)
+
+  collection Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant      Plant         @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy  Profile       @relation("ReminderCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  events     ReminderEvent[]
+
+  @@index([plantId, archivedAt])
+  @@index([collectionId, nextDueAt])
+  @@index([nextDueAt])
+  @@map("reminders")
+}
+
+model ReminderEvent {
+  id          String            @id @db.Uuid
+  reminderId  String            @map("reminder_id") @db.Uuid
+  eventType ReminderEventType @map("event_type")
+  careLogId String?           @map("care_log_id") @db.Uuid
+  metadata    Json              @default("{}") @db.JsonB
+  createdById String            @map("created_by") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  careLog  CareLog? @relation(fields: [careLogId], references: [id], onDelete: SetNull)
+  createdBy Profile @relation("ReminderEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([reminderId, createdAt])
+  @@index([careLogId])
+  @@map("reminder_events")
+}
+
+/// User-facing collaboration feed (not an audit log). Extensible `eventType` string.
+model ActivityEvent {
+  id           String    @id @default(uuid()) @db.Uuid
+  collectionId String    @map("collection_id") @db.Uuid
+  plantId      String?   @map("plant_id") @db.Uuid
+  actorUserId  String?   @map("actor_user_id") @db.Uuid
+  eventType    String    @map("event_type") @db.VarChar(80)
+  summary      String    @db.Text
+  payload      Json?     @db.JsonB
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant      Plant?     @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  actor      Profile?   @relation("ActivityEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([collectionId, createdAt(sort: Desc)])
+  @@index([plantId, createdAt(sort: Desc)])
+  @@map("activity_events")
 }

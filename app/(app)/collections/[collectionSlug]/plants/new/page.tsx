@@ -2,7 +2,9 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getPlantCreateDependencies } from "@/lib/plants/queries";
+import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { PageContainer } from "@/components/layout/page-container";
+import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
 import { CreatePlantForm } from "@/components/plants/create-plant-form";
 
 type Props = {
@@ -28,6 +30,7 @@ export default async function NewPlantPage({ params }: Props) {
   if (deps.areas.length === 0) {
     return (
       <PageContainer>
+        <CollectionSectionTabs collectionSlug={collectionSlug} className="mb-8" />
         <div className="mx-auto max-w-lg rounded-3xl bg-surface-container-low/70 px-6 py-12 text-center ring-1 ring-outline-variant/10 sm:px-10">
           <h2 className="font-display text-xl font-semibold text-on-surface">
             Add an area first
@@ -55,6 +58,7 @@ export default async function NewPlantPage({ params }: Props) {
         collectionSlug={deps.collection.slug}
         collectionName={deps.collection.name}
         areas={deps.areas}
+        uploadsEnabled={isSupabaseStorageConfigured()}
       />
     </PageContainer>
   );

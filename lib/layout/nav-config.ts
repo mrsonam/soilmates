@@ -34,15 +34,17 @@ export const bottomNav: NavEntry[] = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+/** First path segment after `/` (ignores query/hash). Used so nav active state matches top-level section only. */
+function firstPathSegment(path: string): string | undefined {
+  const pathOnly = path.split(/[?#]/)[0] ?? path;
+  return pathOnly.split("/").filter(Boolean)[0];
+}
+
 export function isNavActive(pathname: string, href: string): boolean {
-  if (pathname === href) return true;
-  if (href === "/dashboard") return false;
-  if (href === "/plants") {
-    if (pathname.startsWith("/plants")) return true;
-    if (/^\/collections\/[^/]+\/plants/.test(pathname)) return true;
-    return false;
-  }
-  return pathname.startsWith(`${href}/`);
+  const pathSeg = firstPathSegment(pathname);
+  const hrefSeg = firstPathSegment(href);
+  if (!hrefSeg) return false;
+  return pathSeg === hrefSeg;
 }
 
 /** Default page titles when no dynamic segment. */

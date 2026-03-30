@@ -22,7 +22,11 @@ function FieldError({ state }: { state: CollectionFormState }) {
   );
 }
 
-export function CollectionSetupForm() {
+export function CollectionSetupForm({
+  uploadsEnabled,
+}: {
+  uploadsEnabled: boolean;
+}) {
   const [createState, createFormAction, createPending] = useActionState(
     createCollectionAction,
     collectionFormInitialState,
@@ -42,7 +46,11 @@ export function CollectionSetupForm() {
           Start your shared plant space
         </p>
 
-        <form action={createFormAction} className="mt-8 space-y-5">
+        <form
+          action={createFormAction}
+          encType="multipart/form-data"
+          className="mt-8 space-y-5"
+        >
           <FieldError state={createState} />
           <div>
             <label
@@ -61,6 +69,37 @@ export function CollectionSetupForm() {
               disabled={createPending}
               className="w-full rounded-2xl bg-surface-container-highest px-4 py-3.5 text-[0.9375rem] text-on-surface outline-none ring-0 transition placeholder:text-on-surface-variant/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#737972]/80"
             />
+          </div>
+          <div>
+            <label
+              htmlFor="collection-cover"
+              className="mb-2 block text-xs font-medium uppercase tracking-wide text-on-surface-variant"
+            >
+              Cover photo{" "}
+              {uploadsEnabled ? (
+                <span className="text-primary">*</span>
+              ) : (
+                <span className="font-normal normal-case text-on-surface-variant/80">
+                  (optional — add Supabase env to require)
+                </span>
+              )}
+            </label>
+            {uploadsEnabled ? (
+              <input
+                id="collection-cover"
+                name="coverImage"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                required
+                disabled={createPending}
+                className="w-full rounded-2xl bg-surface-container-highest px-4 py-3 text-[0.9375rem] text-on-surface file:mr-3 file:rounded-xl file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+              />
+            ) : (
+              <p className="rounded-2xl bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-950/90 ring-1 ring-amber-500/20 dark:text-amber-100/90">
+                Configure Supabase storage to upload a cover. You can create the
+                collection now and add a photo later from the collection page.
+              </p>
+            )}
           </div>
           <button
             type="submit"

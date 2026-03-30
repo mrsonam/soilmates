@@ -11,6 +11,7 @@ export type CollectionCardModel = {
   memberCount: number;
   plantCount: number;
   areaCount: number;
+  coverImageSignedUrl: string | null;
 };
 
 type CollectionCardProps = {
@@ -26,6 +27,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
     memberCount,
     plantCount,
     areaCount,
+    coverImageSignedUrl,
   } = collection;
 
   const privacyLabel = memberCount > 1 ? "Shared" : "Private";
@@ -36,12 +38,26 @@ export function CollectionCard({ collection }: CollectionCardProps) {
       className="group block overflow-hidden rounded-3xl bg-surface-container-lowest shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-16px_rgba(27,28,26,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary-fixed/35 via-surface-container-low to-primary-fixed-dim/40">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(81,100,71,0.12),transparent_55%)]" />
-        <Sprout
-          className="absolute left-1/2 top-1/2 size-14 -translate-x-1/2 -translate-y-1/2 text-primary/35 transition group-hover:scale-105 group-hover:text-primary/45"
-          strokeWidth={1.25}
-          aria-hidden
-        />
+        {coverImageSignedUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private bucket */}
+            <img
+              src={coverImageSignedUrl}
+              alt=""
+              className="absolute inset-0 size-full object-cover transition duration-200 group-hover:scale-[1.02]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-on-surface/55 via-on-surface/10 to-transparent" />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(81,100,71,0.12),transparent_55%)]" />
+            <Sprout
+              className="absolute left-1/2 top-1/2 size-14 -translate-x-1/2 -translate-y-1/2 text-primary/35 transition group-hover:scale-105 group-hover:text-primary/45"
+              strokeWidth={1.25}
+              aria-hidden
+            />
+          </>
+        )}
         <span className="absolute bottom-3 left-3 rounded-full bg-on-surface/55 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-surface backdrop-blur-sm">
           {privacyLabel}
         </span>

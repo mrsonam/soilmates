@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { CollectionMemberStatus } from "@prisma/client";
+import {
+  createSignedUrlsForPaths,
+  isSupabaseStorageConfigured,
+} from "@/lib/supabase/admin";
 
 export type PlantDetailModel = {
   id: string;
@@ -8,7 +12,11 @@ export type PlantDetailModel = {
   nickname: string;
   referenceCommonName: string | null;
   plantType: string | null;
+  /** Legacy external URL from plant creation (optional). */
   primaryImageUrl: string | null;
+  /** Hero image URL: signed private cover when set, else `primaryImageUrl`. */
+  heroImageUrl: string | null;
+  primaryImageId: string | null;
   lifeStage: string;
   healthStatus: string;
   acquisitionType: string;
@@ -63,6 +71,10 @@ export const getPlantDetailBySlugs = cache(
         referenceCommonName: true,
         plantType: true,
         primaryImageUrl: true,
+        primaryImageId: true,
+        primaryImage: {
+          select: { storagePath: true },
+        },
         lifeStage: true,
         healthStatus: true,
         acquisitionType: true,
@@ -77,10 +89,27 @@ export const getPlantDetailBySlugs = cache(
 
     if (!row) return null;
 
-    /** Separate query: avoids `_count` in `select` when the generated client is stale. */
     const careLogCount = await prisma.careLog.count({
       where: { plantId: row.id, deletedAt: null },
     });
+
+    const photoCount = await prisma.plantImage.count({
+      where: { plantId: row.id, deletedAt: null },
+    });
+
+    const reminderCount = await prisma.reminder.count({
+      where: { plantId: row.id, archivedAt: null },
+    });
+
+    let heroImageUrl: string | null = null;
+    const storagePath = row.primaryImage?.storagePath;
+    if (storagePath && isSupabaseStorageConfigured()) {
+      const map = await createSignedUrlsForPaths([storagePath]);
+      heroImageUrl = map.get(storagePath) ?? null;
+    }
+    if (!heroImageUrl && row.primaryImageUrl?.trim()) {
+      heroImageUrl = row.primaryImageUrl.trim();
+    }
 
     return {
       id: row.id,
@@ -89,6 +118,8 @@ export const getPlantDetailBySlugs = cache(
       referenceCommonName: row.referenceCommonName,
       plantType: row.plantType,
       primaryImageUrl: row.primaryImageUrl,
+      heroImageUrl,
+      primaryImageId: row.primaryImageId,
       lifeStage: row.lifeStage,
       healthStatus: row.healthStatus,
       acquisitionType: row.acquisitionType,
@@ -106,8 +137,8 @@ export const getPlantDetailBySlugs = cache(
       },
       counts: {
         careLogs: careLogCount,
-        photos: 0,
-        reminders: 0,
+        photos: photoCount,
+        reminders: reminderCount,
       },
     };
   },
