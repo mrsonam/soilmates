@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { CollectionMemberStatus } from "@prisma/client";
+import type { PlantReferenceSnapshot } from "@/lib/integrations/trefle/types";
+import { parsePlantReferenceSnapshot } from "@/lib/plants/reference-store";
 import {
   createSignedUrlsForPaths,
   isSupabaseStorageConfigured,
@@ -32,6 +34,7 @@ export type PlantDetailModel = {
     photos: number;
     reminders: number;
   };
+  referenceSnapshot: PlantReferenceSnapshot | null;
 };
 
 /**
@@ -69,6 +72,7 @@ export const getPlantDetailBySlugs = cache(
         slug: true,
         nickname: true,
         referenceCommonName: true,
+        referenceSnapshot: true,
         plantType: true,
         primaryImageUrl: true,
         primaryImageId: true,
@@ -140,6 +144,7 @@ export const getPlantDetailBySlugs = cache(
         photos: photoCount,
         reminders: reminderCount,
       },
+      referenceSnapshot: parsePlantReferenceSnapshot(row.referenceSnapshot),
     };
   },
 );

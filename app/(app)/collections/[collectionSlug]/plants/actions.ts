@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -13,6 +14,11 @@ import { createPlantSchema } from "@/lib/validations/plant";
 import { createActivityEvent } from "@/lib/activity/create-event";
 import { ActivityEventTypes } from "@/lib/activity/event-types";
 import { getActorLabel } from "@/lib/activity/actor-label";
+import { getPlantReference } from "@/lib/integrations/trefle/service";
+import {
+  createPlantReferenceSnapshot,
+  upsertPlantReference,
+} from "@/lib/plants/reference-store";
 import type { CreatePlantFormState } from "./plant-form-state";
 
 export async function createPlantAction(
@@ -50,6 +56,7 @@ export async function createPlantAction(
 
   const parsed = createPlantSchema.safeParse({
     nickname: String(formData.get("nickname") ?? ""),
+    referenceIdentifier: String(formData.get("referenceIdentifier") ?? ""),
     referenceCommonName: String(formData.get("referenceCommonName") ?? ""),
     plantType: String(formData.get("plantType") ?? ""),
     areaId: String(formData.get("areaId") ?? ""),
@@ -84,11 +91,32 @@ export async function createPlantAction(
     return { error: "That area doesn’t belong to this collection." };
   }
 
+  let normalizedReference = null;
+  if (parsed.data.referenceIdentifier) {
+    try {
+      normalizedReference = await getPlantReference(parsed.data.referenceIdentifier);
+    } catch (error) {
+      console.error(error);
+      return { error: "Unable to load plant reference right now." };
+    }
+  }
+
   const plantId = randomUUID();
   let slug = "";
 
   try {
     await prisma.$transaction(async (tx) => {
+      let referenceCatalogId: string | null = null;
+      let referenceSnapshot: Prisma.InputJsonValue | undefined;
+
+      if (normalizedReference) {
+        const storedReference = await upsertPlantReference(tx, normalizedReference);
+        referenceCatalogId = storedReference.id;
+        referenceSnapshot = createPlantReferenceSnapshot(
+          normalizedReference,
+        ) as Prisma.InputJsonValue;
+      }
+
       slug = await resolveUniquePlantSlug(
         collectionId,
         parsed.data.nickname,
@@ -101,8 +129,13 @@ export async function createPlantAction(
           areaId: parsed.data.areaId,
           slug,
           nickname: parsed.data.nickname.trim(),
-          referenceCommonName: parsed.data.referenceCommonName ?? null,
-          referenceCatalogId: null,
+          referenceCommonName:
+            normalizedReference?.commonName ??
+            normalizedReference?.scientificName ??
+            parsed.data.referenceCommonName ??
+            null,
+          referenceCatalogId,
+          referenceSnapshot,
           plantType: parsed.data.plantType ?? null,
           lifeStage: parsed.data.lifeStage,
           healthStatus: parsed.data.healthStatus,

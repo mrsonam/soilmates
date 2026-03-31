@@ -8,6 +8,7 @@ import {
   labelLifeStage,
 } from "@/lib/plants/display-labels";
 import { PlantStatusBadge } from "@/components/plants/plant-status-badge";
+import { PlantReferencePanel } from "./plant-reference-panel";
 
 type PlantOverviewPanelProps = {
   plant: PlantDetailModel;
@@ -43,6 +44,8 @@ export function PlantOverviewPanel({
 
   return (
     <div className="space-y-6">
+      <PlantReferencePanel reference={plant.referenceSnapshot} />
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-3xl bg-surface-container-lowest p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">
           <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-on-surface-variant">

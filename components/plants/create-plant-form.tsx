@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
+import { PlantReferencePicker } from "@/components/plants/plant-reference-picker";
 import { createPlantAction } from "@/app/(app)/collections/[collectionSlug]/plants/actions";
 import { createPlantFormInitialState } from "@/app/(app)/collections/[collectionSlug]/plants/plant-form-state";
 import type { PlantCreateAreaOption } from "@/lib/plants/queries";
@@ -287,7 +288,7 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
         <FieldGroup
           icon={<Leaf className="size-5" strokeWidth={1.75} aria-hidden />}
           title="Identity"
-          description="What you call this plant and how you think about it."
+          description="Choose a plant reference when you can, then keep household-specific choices separate."
         >
           <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
             <div className="sm:col-span-2">
@@ -304,36 +305,28 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
                 className={inputClass}
               />
             </div>
-            <div>
-              <label htmlFor="reference-common" className={labelClass}>
-                Common or scientific name
-              </label>
-              <input
-                id="reference-common"
-                name="referenceCommonName"
-                type="text"
-                disabled={pending}
-                placeholder="e.g. Monstera deliciosa"
-                className={inputClass}
+            <div className="sm:col-span-2">
+              <PlantReferencePicker
+                pending={pending}
+                inputClass={inputClass}
+                labelClass={labelClass}
               />
             </div>
             <div>
               <label htmlFor="plant-type" className={labelClass}>
-                Plant type
+                Custom plant type
               </label>
               <input
                 id="plant-type"
                 name="plantType"
                 type="text"
                 disabled={pending}
-                placeholder="e.g. Tropical foliage"
+                placeholder="Optional, e.g. Kitchen herb"
                 className={inputClass}
               />
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="plant-reference-select" className={labelClass}>
-                Species catalog
-              </label>
+              <p className={labelClass}>Reference behavior</p>
               <select
                 id="plant-reference-select"
                 disabled

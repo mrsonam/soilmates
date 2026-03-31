@@ -33,7 +33,7 @@ export function AppShell({ children, collections, uploadsEnabled, user }: AppShe
           <div className="flex min-h-dvh items-stretch">
             <Sidebar collections={collections} user={user} />
             <div className="flex min-w-0 flex-1 flex-col lg:min-h-dvh">
-              <AppHeader collections={collections} user={user} />
+              <AppHeader collections={collections} />
               <div className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8">
                 {children}
               </div>

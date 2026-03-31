@@ -89,6 +89,8 @@ model Profile {
   remindersCreated        Reminder[]             @relation("ReminderCreatedBy")
   reminderEventsCreated   ReminderEvent[]        @relation("ReminderEventCreatedBy")
   activityEventsAsActor   ActivityEvent[]        @relation("ActivityEventActor")
+  aiThreadsCreated        AiThread[]             @relation("AiThreadCreatedBy")
+  aiMessagesCreated       AiMessage[]            @relation("AiMessageCreatedBy")
 
   @@map("profiles")
 }
@@ -114,6 +116,7 @@ model Collection {
   plantImages PlantImage[]
   reminders   Reminder[]
   activityEvents ActivityEvent[]
+  aiThreads      AiThread[]
 
   @@map("collections")
 }
@@ -151,6 +154,8 @@ model Plant {
   referenceCommonName   String?                @map("reference_common_name")
   /// Future stable id from canonical plant DB (optional).
   referenceCatalogId    String?                @map("reference_catalog_id") @db.Uuid
+  /// Stable local snapshot of the selected reference when the plant was created.
+  referenceSnapshot     Json?                  @map("reference_snapshot") @db.JsonB
   plantType             String?                @map("plant_type")
   lifeStage             PlantLifeStage         @map("life_stage")
   healthStatus          PlantHealthStatus      @map("health_status")
@@ -168,16 +173,76 @@ model Plant {
 
   collection   Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   area         Area          @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  reference    PlantReference? @relation(fields: [referenceCatalogId], references: [id], onDelete: SetNull)
   careLogs     CareLog[]
   images       PlantImage[]  @relation("PlantImages")
   primaryImage PlantImage?   @relation("PlantPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
   reminders    Reminder[]
   activityEvents ActivityEvent[]
+  aiThreads      AiThread[]
 
   @@unique([collectionId, slug])
   @@index([collectionId, archivedAt])
   @@index([areaId, archivedAt])
+  @@index([referenceCatalogId])
   @@map("plants")
+}
+
+/// Provider-backed canonical plant reference stored locally for stable snapshots and future syncing.
+model PlantReference {
+  id                        String    @id @db.Uuid
+  provider                  String    @db.VarChar(40)
+  providerPlantId           String    @map("provider_plant_id") @db.VarChar(100)
+  providerSlug              String?   @map("provider_slug")
+  commonName                String?   @map("common_name")
+  scientificName            String?   @map("scientific_name")
+  family                    String?
+  familyCommonName          String?   @map("family_common_name")
+  genus                     String?
+  status                    String?
+  rank                      String?
+  imageUrl                  String?   @map("image_url")
+  light                     Int?
+  groundHumidity            Int?      @map("ground_humidity")
+  atmosphericHumidity       Int?      @map("atmospheric_humidity")
+  minimumTemperatureDegC    Float?    @map("minimum_temperature_deg_c")
+  maximumTemperatureDegC    Float?    @map("maximum_temperature_deg_c")
+  soilTexture               Json      @default("[]") @map("soil_texture") @db.JsonB
+  soilNutriments            Int?      @map("soil_nutriments")
+  growthRate                String?   @map("growth_rate")
+  duration                  String?
+  observations              String?
+  edible                    Boolean?
+  ediblePart                Json      @default("[]") @map("edible_part") @db.JsonB
+  vegetable                 Boolean?
+  toxicity                  String?
+  averageHeightValue        Float?    @map("average_height_value")
+  averageHeightUnit         String?   @map("average_height_unit")
+  maximumHeightValue        Float?    @map("maximum_height_value")
+  maximumHeightUnit         String?   @map("maximum_height_unit")
+  plantingSpreadValue       Float?    @map("planting_spread_value")
+  plantingSpreadUnit        String?   @map("planting_spread_unit")
+  flowerColor               Json      @default("[]") @map("flower_color") @db.JsonB
+  foliageColor              Json      @default("[]") @map("foliage_color") @db.JsonB
+  leafRetention             Boolean?  @map("leaf_retention")
+  growthForm                String?   @map("growth_form")
+  growthHabit               String?   @map("growth_habit")
+  ligneousType              String?   @map("ligneous_type")
+  lightLabel                String?   @map("light_label")
+  soilMoistureLabel         String?   @map("soil_moisture_label")
+  humidityLabel             String?   @map("humidity_label")
+  temperatureLabel          String?   @map("temperature_label")
+  toxicityLabel             String?   @map("toxicity_label")
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastSyncedAt              DateTime  @map("last_synced_at") @db.Timestamptz(6)
+
+  plants Plant[]
+
+  @@unique([provider, providerPlantId])
+  @@index([provider, providerSlug])
+  @@index([provider, commonName])
+  @@map("plant_references")
 }
 
 /// Care events for a plant (quick actions + detailed logs). Soft-deleted rows stay in DB.
@@ -378,4 +443,57 @@ model ActivityEvent {
   @@index([collectionId, createdAt(sort: Desc)])
   @@index([plantId, createdAt(sort: Desc)])
   @@map("activity_events")
+}
+
+enum AiThreadType {
+  global
+  plant
+}
+
+enum AiMessageRole {
+  user
+  assistant
+  system
+  tool
+}
+
+/// AI assistant conversation thread (global or plant-scoped).
+model AiThread {
+  id             String        @id @default(uuid()) @db.Uuid
+  collectionId   String?       @map("collection_id") @db.Uuid
+  plantId        String?       @map("plant_id") @db.Uuid
+  createdById    String        @map("created_by") @db.Uuid
+  threadType     AiThreadType  @map("thread_type")
+  title          String?
+  lastMessageAt  DateTime?     @map("last_message_at") @db.Timestamptz(6)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt     DateTime?     @map("archived_at") @db.Timestamptz(6)
+
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant      Plant?      @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy  Profile     @relation("AiThreadCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  messages   AiMessage[]
+
+  @@index([createdById, threadType, lastMessageAt(sort: Desc)])
+  @@index([plantId])
+  @@index([collectionId])
+  @@map("ai_threads")
+}
+
+model AiMessage {
+  id                  String        @id @default(uuid()) @db.Uuid
+  threadId            String        @map("thread_id") @db.Uuid
+  role                AiMessageRole
+  content             String        @db.Text
+  contextSnapshot     Json?         @map("context_snapshot") @db.JsonB
+  relatedDiagnosisId  String?       @map("related_diagnosis_id") @db.Uuid
+  createdById         String?       @map("created_by") @db.Uuid
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  thread    AiThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  createdBy Profile? @relation("AiMessageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+  @@map("ai_messages")
 }

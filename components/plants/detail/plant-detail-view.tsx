@@ -19,6 +19,7 @@ import type { ReminderListItem } from "@/lib/reminders/queries";
 import { PlantRemindersSection } from "@/components/reminders/plant-reminders-section";
 import type { ActivityFeedItem } from "@/lib/activity/queries";
 import { PlantActivityPreview } from "@/components/activity/plant-activity-preview";
+import { PlantAssistantPanel } from "@/components/assistant/plant-assistant-panel";
 
 type PlantDetailViewProps = {
   plant: PlantDetailModel;
@@ -30,6 +31,13 @@ type PlantDetailViewProps = {
   uploadsEnabled: boolean;
   reminders: ReminderListItem[];
   plantActivity: ActivityFeedItem[];
+  assistantThreadId: string | null;
+  assistantMessages: Array<{
+    id: string;
+    role: "user" | "assistant" | "system" | "tool";
+    content: string;
+    createdAt: string;
+  }>;
 };
 
 export function PlantDetailView({
@@ -42,6 +50,8 @@ export function PlantDetailView({
   uploadsEnabled,
   reminders,
   plantActivity,
+  assistantThreadId,
+  assistantMessages,
 }: PlantDetailViewProps) {
   const [tab, setTab] = useState<PlantDetailTabId>(initialTab ?? "overview");
 
@@ -113,12 +123,19 @@ export function PlantDetailView({
               description="Spot something off? Future versions will help you log symptoms and track recovery."
             />
           )}
-          {tab === "assistant" && (
-            <PlantSectionPlaceholder
-              title="Assistant"
-              description="Ask questions in context of this plant — care tips and identification help are on the roadmap."
-            />
-          )}
+          {tab === "assistant" &&
+            (assistantThreadId ? (
+              <PlantAssistantPanel
+                threadId={assistantThreadId}
+                plantNickname={plant.nickname}
+                initialMessages={assistantMessages}
+              />
+            ) : (
+              <PlantSectionPlaceholder
+                title="Assistant"
+                description="We couldn’t open a thread for this plant. Try refreshing the page."
+              />
+            ))}
           {tab === "activity" && (
             <PlantSectionPlaceholder
               title="Activity"

@@ -20,6 +20,7 @@ export const createPlantSchema = z
       .trim()
       .min(1, "Enter a plant nickname")
       .max(120, "Nickname is too long"),
+    referenceIdentifier: z.string().trim().optional(),
     referenceCommonName: z.string().trim().max(200).optional(),
     plantType: z.string().trim().max(120).optional(),
     areaId: z.string().uuid("Choose a valid area"),
@@ -33,6 +34,15 @@ export const createPlantSchema = z
     isFavorite: z.union([z.literal("on"), z.undefined()]).optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.referenceIdentifier && data.referenceIdentifier.length > 0) {
+      if (!/^[a-z0-9-]+(:[a-z0-9-]+)?$/i.test(data.referenceIdentifier)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Choose a valid plant reference",
+          path: ["referenceIdentifier"],
+        });
+      }
+    }
     if (data.acquiredAt && data.acquiredAt.length > 0) {
       if (Number.isNaN(Date.parse(data.acquiredAt))) {
         ctx.addIssue({
@@ -44,7 +54,6 @@ export const createPlantSchema = z
     }
     if (data.primaryImageUrl && data.primaryImageUrl.length > 0) {
       try {
-        // eslint-disable-next-line no-new -- URL validation
         new URL(data.primaryImageUrl);
       } catch {
         ctx.addIssue({
@@ -65,6 +74,10 @@ export const createPlantSchema = z
     }
     return {
       nickname: d.nickname,
+      referenceIdentifier:
+        d.referenceIdentifier && d.referenceIdentifier.length > 0
+          ? d.referenceIdentifier
+          : undefined,
       referenceCommonName:
         d.referenceCommonName && d.referenceCommonName.length > 0
           ? d.referenceCommonName

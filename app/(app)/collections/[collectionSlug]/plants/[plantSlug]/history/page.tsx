@@ -58,6 +58,8 @@ export default async function PlantCareHistoryPage({ params }: Props) {
         uploadsEnabled={isSupabaseStorageConfigured()}
         reminders={reminders}
         plantActivity={plantActivity}
+        assistantThreadId={null}
+        assistantMessages={[]}
       />
     </PageContainer>
   );

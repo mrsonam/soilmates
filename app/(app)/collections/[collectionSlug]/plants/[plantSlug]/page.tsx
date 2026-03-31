@@ -8,6 +8,7 @@ import { getPlantActivityForMember } from "@/lib/activity/queries";
 import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlantDetailView } from "@/components/plants/detail/plant-detail-view";
+import { getPlantAssistantThreadId, getThreadMessages } from "@/lib/ai/queries";
 
 type Props = {
   params: Promise<{ collectionSlug: string; plantSlug: string }>;
@@ -23,7 +24,11 @@ export default async function PlantDetailPage({ params, searchParams }: Props) {
   const { collectionSlug, plantSlug } = await params;
   const sp = await searchParams;
   const initialTab =
-    sp.tab === "reminders" ? ("reminders" as const) : undefined;
+    sp.tab === "reminders"
+      ? ("reminders" as const)
+      : sp.tab === "assistant"
+        ? ("assistant" as const)
+        : undefined;
 
   const [plant, careLogs, galleryImages, remindersPayload, plantActivity] =
     await Promise.all([
@@ -39,6 +44,29 @@ export default async function PlantDetailPage({ params, searchParams }: Props) {
     notFound();
   }
 
+  const assistantThreadId = await getPlantAssistantThreadId(
+    session.user.id,
+    collectionSlug,
+    plantSlug,
+  );
+
+  let assistantMessages: Array<{
+    id: string;
+    role: "user" | "assistant" | "system" | "tool";
+    content: string;
+    createdAt: string;
+  }> = [];
+
+  if (assistantThreadId) {
+    const rows = await getThreadMessages(assistantThreadId);
+    assistantMessages = rows.map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      createdAt: m.createdAt.toISOString(),
+    }));
+  }
+
   return (
     <PageContainer>
       <PlantDetailView
@@ -52,6 +80,8 @@ export default async function PlantDetailPage({ params, searchParams }: Props) {
         uploadsEnabled={isSupabaseStorageConfigured()}
         reminders={reminders}
         plantActivity={plantActivity}
+        assistantThreadId={assistantThreadId}
+        assistantMessages={assistantMessages}
       />
     </PageContainer>
   );

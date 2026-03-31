@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Leaf, Plus } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { useFormStatus } from "react-dom";
+import { Leaf } from "lucide-react";
 import { sidebarNav, isNavActive } from "@/lib/layout/nav-config";
+import { logoutAction } from "@/app/(app)/logout-action";
 import { NavItem } from "./nav-item";
 import { CollectionSwitcher, type CollectionOption } from "./collection-switcher";
 
@@ -17,27 +19,10 @@ type SidebarProps = {
   };
 };
 
-function addPlantHrefForPath(
-  pathname: string,
-  collections: CollectionOption[],
-): string {
-  const fromPath = pathname.match(/^\/collections\/([^/]+)/)?.[1];
-  if (
-    fromPath &&
-    collections.some((c) => c.slug === fromPath)
-  ) {
-    return `/collections/${fromPath}/plants/new`;
-  }
-  if (collections[0]) {
-    return `/collections/${collections[0].slug}/plants/new`;
-  }
-  return "/collections";
-}
-
 export function Sidebar({ collections, user }: SidebarProps) {
   const pathname = usePathname();
   const display = user.name?.trim() || user.email.split("@")[0] || "Grower";
-  const addPlantHref = addPlantHrefForPath(pathname, collections);
+  const initial = display.slice(0, 1).toUpperCase();
 
   return (
     <aside
@@ -79,22 +64,24 @@ export function Sidebar({ collections, user }: SidebarProps) {
         </div>
 
         <div className="shrink-0 border-t border-outline-variant/10 bg-surface-container-low px-4 pb-6 pt-5">
-          <Link
-            href={addPlantHref}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-medium text-on-primary shadow-(--shadow-ambient) transition hover:bg-primary/92"
-          >
-            <Plus className="size-4" strokeWidth={2.25} aria-hidden />
-            Add New Plant
-          </Link>
-
-          <div className="mt-5">
-            <div className="flex items-center gap-3 rounded-2xl px-2 py-2">
-              <div
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-sm font-semibold text-primary"
-                aria-hidden
-              >
-                {display.slice(0, 1).toUpperCase()}
-              </div>
+          <div className="px-2">
+            <div className="flex items-center gap-3 rounded-2xl py-2">
+              {user.image ? (
+                <Image
+                  src={user.image}
+                  alt={`${display} profile`}
+                  width={40}
+                  height={40}
+                  className="size-10 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-sm font-semibold text-primary"
+                  aria-hidden
+                >
+                  {initial}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-on-surface">
                   {display}
@@ -104,16 +91,26 @@ export function Sidebar({ collections, user }: SidebarProps) {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="mt-2 w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface"
-            >
-              Sign out
-            </button>
+            <form action={logoutAction} className="mt-3">
+              <LogoutButton />
+            </form>
           </div>
         </div>
       </div>
     </aside>
+  );
+}
+
+function LogoutButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="w-full rounded-2xl bg-surface-container-high px-3 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending ? "Logging out..." : "Log out"}
+    </button>
   );
 }
