@@ -60,7 +60,7 @@ export function AppShell({
                 pendingInviteCount={pendingInviteCount}
               />
               <OfflineBanner />
-              <div className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8">
+              <div className="flex-1 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-8">
                 <DeadLetterStrip />
                 <ConflictQueueStrip />
                 {children}

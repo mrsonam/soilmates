@@ -13,7 +13,10 @@ export function PwaRegister() {
 
     async function register() {
       try {
-        await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+          updateViaCache: "none",
+        });
       } catch {
         // Dev or unsupported context
       }

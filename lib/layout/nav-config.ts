@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
-  Home,
   LayoutDashboard,
   Mail,
   MessageCircle,
@@ -27,12 +26,12 @@ export const sidebarNav: NavEntry[] = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-/** Bottom tab bar (mobile) — Home maps to dashboard. */
+/** Bottom tab bar (mobile) — matches primary app areas; Assistant stays desktop/sidebar. */
 export const bottomNav: NavEntry[] = [
-  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/collections", label: "Collections", icon: FolderKanban },
   { href: "/plants", label: "Plants", icon: Sprout },
   { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/assistant", label: "Assistant", icon: MessageCircle },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -47,6 +46,18 @@ export function isNavActive(pathname: string, href: string): boolean {
   const hrefSeg = firstPathSegment(href);
   if (!hrefSeg) return false;
   return pathSeg === hrefSeg;
+}
+
+const pathOnly = (pathname: string) => pathname.split(/[?#]/)[0] ?? pathname;
+
+/** Mobile bottom bar: highlights Plants when on global `/plants` or any collection plant list/detail. */
+export function isBottomNavActive(pathname: string, href: string): boolean {
+  const p = pathOnly(pathname);
+  if (href === "/plants") {
+    if (p === "/plants" || p.startsWith("/plants/")) return true;
+    return /^\/collections\/[^/]+\/plants(\/|$)/.test(p);
+  }
+  return isNavActive(pathname, href);
 }
 
 /** Default page titles when no dynamic segment. */

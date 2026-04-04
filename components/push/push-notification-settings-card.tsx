@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   subscribeDeviceAndEnablePush,
   unsubscribeDeviceAndDisablePush,
@@ -27,13 +27,19 @@ export function PushNotificationSettingsCard({
   const permission = useNotificationPermission();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clientPushOk, setClientPushOk] = useState(false);
+  useEffect(() => {
+    setClientPushOk(
+      typeof window !== "undefined" &&
+        "serviceWorker" in navigator &&
+        "PushManager" in window,
+    );
+  }, []);
 
   const canUsePush =
     vapidConfigured &&
     permission !== "unsupported" &&
-    typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window;
+    clientPushOk;
 
   async function handleToggle(next: boolean) {
     setBusy(true);
@@ -82,6 +88,13 @@ export function PushNotificationSettingsCard({
         <p className="mt-3 text-xs text-on-surface-variant">
           Push delivery is not configured on this server yet. In-app reminders
           continue to work.
+        </p>
+      ) : null}
+
+      {vapidConfigured && permission !== "unsupported" && !canUsePush ? (
+        <p className="mt-3 text-xs text-on-surface-variant">
+          Web Push needs a supported browser. On iPhone, add Soil Mates to your Home
+          Screen and open that app (iOS 16.4+), not a regular Safari tab.
         </p>
       ) : null}
 

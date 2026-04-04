@@ -43,8 +43,19 @@ export function EnablePushPrompt({
     setPermission(Notification.permission);
   }, []);
 
+  const [pushApisOk, setPushApisOk] = useState(false);
+  useEffect(() => {
+    setPushApisOk(
+      typeof window !== "undefined" &&
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window,
+    );
+  }, []);
+
   const visible =
     getFeatureFlags().pushNotifications &&
+    pushApisOk &&
     dismissed === false &&
     eligible &&
     !pushEnabledInDb &&
@@ -82,7 +93,7 @@ export function EnablePushPrompt({
 
   return (
     <div
-      className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 max-w-lg rounded-2xl border border-outline-variant/50 bg-surface-container-high p-4 shadow-lg lg:left-auto lg:right-8 lg:bottom-8"
+      className="fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 max-w-lg rounded-2xl border border-outline-variant/50 bg-surface-container-high p-4 shadow-lg lg:left-auto lg:right-8 lg:bottom-8"
       role="dialog"
       aria-label="Enable push notifications"
     >
