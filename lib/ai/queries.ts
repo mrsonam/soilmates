@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { AiThreadType, CollectionMemberStatus } from "@prisma/client";
-import { getCollectionIdForActiveMember } from "@/lib/collections/access";
+import {
+  getCollectionIdForActiveMember,
+  getMembershipForCollectionSlug,
+} from "@/lib/collections/access";
 
 export async function assertUserOwnsThread(userId: string, threadId: string) {
   const row = await prisma.aiThread.findFirst({
@@ -146,21 +149,32 @@ export async function getPlantAssistantThreadId(
   collectionSlug: string,
   plantSlug: string,
 ): Promise<string | null> {
-  const collectionId = await getCollectionIdForActiveMember(
-    userId,
-    collectionSlug,
-  );
-  if (!collectionId) return null;
+  const m = await getMembershipForCollectionSlug(userId, collectionSlug);
+  if (!m) return null;
 
   const plant = await prisma.plant.findFirst({
     where: {
-      collectionId,
+      collectionId: m.collectionId,
       slug: plantSlug,
+    },
+    select: { id: true, archivedAt: true },
+  });
+  if (!plant) return null;
+
+  const existing = await prisma.aiThread.findFirst({
+    where: {
+      createdById: userId,
+      threadType: AiThreadType.plant,
+      plantId: plant.id,
       archivedAt: null,
     },
     select: { id: true },
   });
-  if (!plant) return null;
+  if (existing) return existing.id;
 
-  return getOrCreatePlantThread(userId, collectionId, plant.id);
+  if (plant.archivedAt != null || m.collection.archivedAt != null) {
+    return null;
+  }
+
+  return getOrCreatePlantThread(userId, m.collectionId, plant.id);
 }

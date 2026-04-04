@@ -1,10 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Archive,
   Droplets,
   FolderKanban,
   ImagePlus,
   MapPin,
   Repeat,
+  RotateCcw,
   Sparkles,
   Sprout,
   Users,
@@ -38,6 +40,14 @@ function iconForEventType(eventType: string): LucideIcon {
     case ActivityEventTypes.inviteRevoked:
     case ActivityEventTypes.memberRemoved:
       return Users;
+    case ActivityEventTypes.plantArchived:
+    case ActivityEventTypes.areaArchived:
+    case ActivityEventTypes.collectionArchived:
+      return Archive;
+    case ActivityEventTypes.plantRestored:
+    case ActivityEventTypes.areaRestored:
+    case ActivityEventTypes.collectionRestored:
+      return RotateCcw;
     default:
       return Sparkles;
   }

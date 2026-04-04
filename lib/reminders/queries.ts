@@ -6,6 +6,7 @@ import {
   type ReminderType,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getMembershipForCollectionSlug } from "@/lib/collections/access";
 import { computeReminderDisplayStatus } from "@/lib/reminders/status";
 import type { ReminderDisplayStatus } from "@/lib/reminders/status";
 import {
@@ -73,25 +74,27 @@ export const getPlantRemindersForMember = cache(
     collectionSlug: string,
     plantSlug: string,
   ): Promise<ReminderListItem[] | null> => {
-    const membership = await prisma.collectionMember.findFirst({
-      where: {
-        userId,
-        status: CollectionMemberStatus.active,
-        collection: { slug: collectionSlug, archivedAt: null },
-      },
-      select: { collectionId: true },
-    });
+    const membership = await getMembershipForCollectionSlug(
+      userId,
+      collectionSlug,
+    );
     if (!membership) return null;
 
     const plant = await prisma.plant.findFirst({
       where: {
         collectionId: membership.collectionId,
         slug: plantSlug,
-        archivedAt: null,
       },
-      select: { id: true },
+      select: { id: true, archivedAt: true },
     });
     if (!plant) return null;
+
+    if (
+      plant.archivedAt != null ||
+      membership.collection.archivedAt != null
+    ) {
+      return [];
+    }
 
     const rows = await prisma.reminder.findMany({
       where: {

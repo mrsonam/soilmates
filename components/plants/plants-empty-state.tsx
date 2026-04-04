@@ -51,8 +51,8 @@ export function PlantsEmptyState({
         </span>
       </div>
 
-      <h2 className="mt-10 font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
-        Your plant space starts here.
+      <h2 className="mt-10 font-display text-2xl font-semibold tracking-tight text-on-surface sm:text-3xl">
+        Your plant space starts here
       </h2>
       <p className="mt-4 text-sm leading-relaxed text-on-surface-variant sm:text-[0.9375rem]">
         {subcopy}
@@ -71,7 +71,7 @@ export function PlantsEmptyState({
       </div>
 
       <ul className="mt-16 grid gap-4 text-left sm:grid-cols-3 sm:gap-5">
-        <li className="rounded-3xl bg-surface-container-lowest p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08]">
+        <li className="rounded-3xl bg-surface-container-lowest p-5 shadow-[var(--shadow-card)] ring-1 ring-outline-variant/[0.07] transition-shadow duration-300 hover:shadow-[var(--shadow-card-hover)]">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Droplets className="size-5" strokeWidth={1.75} aria-hidden />
           </span>
@@ -82,7 +82,7 @@ export function PlantsEmptyState({
             Keep your greens hydrated with personalized schedules.
           </p>
         </li>
-        <li className="rounded-3xl bg-surface-container-lowest p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08]">
+        <li className="rounded-3xl bg-surface-container-lowest p-5 shadow-[var(--shadow-card)] ring-1 ring-outline-variant/[0.07] transition-shadow duration-300 hover:shadow-[var(--shadow-card-hover)]">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary-fixed/50 text-primary">
             <Camera className="size-5" strokeWidth={1.75} aria-hidden />
           </span>

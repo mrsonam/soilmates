@@ -1,12 +1,12 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { CollectionMemberStatus } from "@prisma/client";
 import type { PlantReferenceSnapshot } from "@/lib/integrations/trefle/types";
 import { parsePlantReferenceSnapshot } from "@/lib/plants/reference-store";
 import {
   createSignedUrlsForPaths,
   isSupabaseStorageConfigured,
 } from "@/lib/supabase/admin";
+import { getMembershipForCollectionSlug } from "@/lib/collections/access";
 
 export type PlantDetailModel = {
   id: string;
@@ -29,6 +29,10 @@ export type PlantDetailModel = {
   isFavorite: boolean;
   growthProgressPercent: number | null;
   createdAt: string;
+  /** When set, plant is archived (hidden from active lists). */
+  archivedAt: string | null;
+  /** When the parent collection is archived, most edits are disabled. */
+  collectionArchivedAt: string | null;
   area: { name: string; slug: string };
   collection: { name: string; slug: string };
   counts: {
@@ -40,7 +44,7 @@ export type PlantDetailModel = {
 };
 
 /**
- * Full plant row for the detail page; verifies active membership and non-archived plant.
+ * Full plant row for the detail page; verifies active membership (including archived collections).
  */
 export const getPlantDetailBySlugs = cache(
   async (
@@ -48,26 +52,16 @@ export const getPlantDetailBySlugs = cache(
     collectionSlug: string,
     plantSlug: string,
   ): Promise<PlantDetailModel | null> => {
-    const membership = await prisma.collectionMember.findFirst({
-      where: {
-        userId,
-        status: CollectionMemberStatus.active,
-        collection: { slug: collectionSlug, archivedAt: null },
-      },
-      select: {
-        collectionId: true,
-        collection: {
-          select: { id: true, name: true, slug: true },
-        },
-      },
-    });
+    const membership = await getMembershipForCollectionSlug(
+      userId,
+      collectionSlug,
+    );
     if (!membership) return null;
 
     const row = await prisma.plant.findFirst({
       where: {
         collectionId: membership.collectionId,
         slug: plantSlug,
-        archivedAt: null,
       },
       select: {
         id: true,
@@ -78,6 +72,7 @@ export const getPlantDetailBySlugs = cache(
         plantType: true,
         primaryImageUrl: true,
         primaryImageId: true,
+        archivedAt: true,
         primaryImage: {
           select: { storagePath: true },
         },
@@ -104,9 +99,14 @@ export const getPlantDetailBySlugs = cache(
       where: { plantId: row.id, deletedAt: null },
     });
 
-    const reminderCount = await prisma.reminder.count({
-      where: { plantId: row.id, archivedAt: null },
-    });
+    const isHiddenFromCare =
+      row.archivedAt != null || membership.collection.archivedAt != null;
+
+    const reminderCount = isHiddenFromCare
+      ? 0
+      : await prisma.reminder.count({
+          where: { plantId: row.id, archivedAt: null },
+        });
 
     let heroImageUrl: string | null = null;
     const storagePath = row.primaryImage?.storagePath;
@@ -138,6 +138,9 @@ export const getPlantDetailBySlugs = cache(
       isFavorite: row.isFavorite,
       growthProgressPercent: row.growthProgressPercent,
       createdAt: row.createdAt.toISOString(),
+      archivedAt: row.archivedAt?.toISOString() ?? null,
+      collectionArchivedAt:
+        membership.collection.archivedAt?.toISOString() ?? null,
       area: row.area,
       collection: {
         name: membership.collection.name,

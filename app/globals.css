@@ -22,6 +22,16 @@
   --form-ring: color-mix(in srgb, var(--outline-variant) 10%, transparent);
   /** Focus ring: primary at ~35% */
   --form-ring-focus: color-mix(in srgb, var(--primary) 35%, transparent);
+  /** Motion — calm, premium (overridden when prefers-reduced-motion) */
+  --motion-fast: 150ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-premium: cubic-bezier(0.33, 1, 0.68, 1);
+  /** Quieter card depth than default ambient for dense UI */
+  --shadow-card: 0 8px 28px -14px rgba(27, 28, 26, 0.07);
+  --shadow-card-hover: 0 20px 44px -18px rgba(27, 28, 26, 0.11);
+  --shadow-header: 0 1px 0 rgba(27, 28, 26, 0.05);
 }
 
 /** Dark theme — toggled via `html.dark` (see ThemeProvider). */
@@ -43,6 +53,9 @@ html.dark {
   --shadow-ambient: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
   --form-ring: color-mix(in srgb, var(--outline-variant) 18%, transparent);
   --form-ring-focus: color-mix(in srgb, var(--primary) 45%, transparent);
+  --shadow-card: 0 8px 32px -14px rgba(0, 0, 0, 0.32);
+  --shadow-card-hover: 0 24px 48px -16px rgba(0, 0, 0, 0.45);
+  --shadow-header: 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 html.dark body {
@@ -313,5 +326,118 @@ input[type="search"]::-ms-reveal {
   }
   .modal-scroll::-webkit-scrollbar {
     display: none;
+  }
+
+  /** Consistent focus for interactive chrome */
+  .focus-ring-premium {
+    outline: none;
+  }
+  .focus-ring-premium:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--surface),
+      0 0 0 4px color-mix(in srgb, var(--primary) 38%, transparent);
+  }
+
+  /** Subtle page content entrance (respects reduced motion below) */
+  .animate-page-enter {
+    animation: sm-page-enter var(--motion-normal) var(--ease-out-soft) both;
+  }
+
+  @keyframes sm-page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /** Chat / assistant bubbles */
+  .animate-message-in {
+    animation: sm-message-in var(--motion-fast) var(--ease-premium) both;
+  }
+
+  @keyframes sm-message-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /** Dropdowns / popovers */
+  .animate-dropdown-in {
+    animation: sm-dropdown-in var(--motion-fast) var(--ease-premium) both;
+    transform-origin: top center;
+  }
+
+  @keyframes sm-dropdown-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /** Skeleton shimmer */
+  .shimmer-soft {
+    background: linear-gradient(
+      105deg,
+      var(--surface-container-high) 0%,
+      color-mix(in srgb, var(--surface-container-highest) 70%, var(--surface-container-high)) 45%,
+      var(--surface-container-high) 90%
+    );
+    background-size: 200% 100%;
+    animation: sm-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes sm-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
+  /** Interactive card lift (desktop hover) — pair with existing surface cards */
+  @media (hover: hover) and (pointer: fine) {
+    .card-lift {
+      box-shadow: var(--shadow-ambient);
+      transition:
+        transform var(--motion-normal) var(--ease-out-soft),
+        box-shadow var(--motion-normal) var(--ease-out-soft);
+    }
+    .card-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter,
+  .animate-message-in,
+  .animate-dropdown-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .shimmer-soft {
+    animation: none;
+    background: var(--surface-container-high);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-lift:hover {
+      transform: none;
+    }
   }
 }

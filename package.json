@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "icons:generate": "node scripts/generate-pwa-icons.cjs"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
@@ -37,6 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "prisma": "5.22.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

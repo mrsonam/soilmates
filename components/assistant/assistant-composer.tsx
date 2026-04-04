@@ -34,7 +34,7 @@ export function AssistantComposer({
   return (
     <form
       onSubmit={submit}
-      className="flex items-end gap-2 rounded-3xl bg-surface-container-high/90 p-2 ring-1 ring-outline-variant/15 focus-within:ring-2 focus-within:ring-primary/20"
+      className="flex items-end gap-2 rounded-3xl bg-surface-container-high/95 p-2 ring-1 ring-outline-variant/12 transition-[box-shadow] duration-200 focus-within:shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-primary/22"
     >
       <label className="sr-only" htmlFor="assistant-composer-input">
         Message
@@ -60,7 +60,7 @@ export function AssistantComposer({
       <button
         type="submit"
         disabled={pending || disabled || !text.trim()}
-        className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition hover:bg-primary/92 disabled:opacity-40"
+        className="focus-ring-premium flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-[background-color,transform,opacity] duration-200 hover:bg-primary/92 active:scale-[0.96] disabled:opacity-40"
         aria-label="Send message"
       >
         <Send className="size-5" strokeWidth={2} aria-hidden />

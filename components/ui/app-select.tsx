@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
+import { computeFloatingDropdownPosition } from "@/components/ui/floating-dropdown-position";
 
 export type AppSelectOption = { value: string; label: string };
 
@@ -64,6 +65,7 @@ export function AppSelect({
     top: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
 
   const selected = useMemo(
@@ -75,15 +77,20 @@ export function AppSelect({
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPanelPos({
-      top: r.bottom + 6,
-      left: r.left,
-      width: r.width,
-    });
+    const maxCap = Math.min(18 * 16, window.innerHeight * 0.7);
+    setPanelPos(
+      computeFloatingDropdownPosition(r, {
+        width: r.width,
+        maxPanelHeightCapPx: maxCap,
+      }),
+    );
   }, []);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setPanelPos(null);
+      return;
+    }
     updatePos();
   }, [open, updatePos]);
 
@@ -154,18 +161,36 @@ export function AppSelect({
     [disabled, highlight, onChange, open, options],
   );
 
-  const list = open && panelPos && typeof document !== "undefined"
-    ? createPortal(
+  useLayoutEffect(() => {
+    if (!open || !panelPos) return;
+    const el = panelRef.current;
+    if (!el || typeof el.showPopover !== "function") return;
+    el.showPopover();
+    return () => {
+      try {
+        el.hidePopover();
+      } catch {
+        /* already hidden */
+      }
+    };
+  }, [open, panelPos]);
+
+  const list =
+    open && panelPos && typeof document !== "undefined"
+      ? createPortal(
         <div
           ref={panelRef}
           id={listboxId}
           role="listbox"
-          className="z-[300] max-h-[min(18rem,70vh)] overflow-y-auto rounded-2xl bg-surface-container-lowest p-1.5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/15"
+          popover="manual"
+          className="overflow-y-auto rounded-2xl bg-surface-container-lowest p-1.5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/15"
           style={{
             position: "fixed",
             top: panelPos.top,
             left: panelPos.left,
             width: panelPos.width,
+            maxHeight: panelPos.maxHeight,
+            boxSizing: "border-box",
           }}
         >
           {options.map((opt, i) => {
@@ -200,7 +225,7 @@ export function AppSelect({
         </div>,
         document.body,
       )
-    : null;
+      : null;
 
   return (
     <div className={["relative min-w-0", className].join(" ")}>

@@ -8,6 +8,7 @@ import webpush from "web-push";
 import type { PushSubscription } from "web-push";
 import { z } from "zod";
 import { updateUserSettings } from "@/app/actions/settings";
+import { PWA_APP_ICON, PWA_BADGE_ICON } from "@/lib/pwa/branding";
 
 const subscriptionSchema = z.object({
   endpoint: z.string().min(1),
@@ -128,8 +129,8 @@ export async function sendTestPushNotification(): Promise<
     title: "Soil Mates",
     body: "You will see care reminders here when plants need attention.",
     url: "/dashboard",
-    icon: "/globe.svg",
-    badge: "/globe.svg",
+    icon: PWA_APP_ICON,
+    badge: PWA_BADGE_ICON,
   });
 
   let sent = 0;

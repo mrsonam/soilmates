@@ -28,10 +28,10 @@ export function AssistantMessageBubble({
     >
       <div
         className={[
-          "max-w-[min(100%,36rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+          "animate-message-in max-w-[min(100%,36rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-[0_2px_12px_-4px_rgba(27,28,26,0.08)]",
           isUser
             ? "bg-primary text-on-primary rounded-br-md"
-            : "bg-surface-container-high/90 text-on-surface ring-1 ring-outline-variant/12 rounded-bl-md",
+            : "bg-surface-container-high/95 text-on-surface ring-1 ring-outline-variant/10 rounded-bl-md",
         ].join(" ")}
       >
         {!isUser &&

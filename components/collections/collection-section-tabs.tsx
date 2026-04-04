@@ -83,7 +83,7 @@ export function CollectionSectionTabs({
   return (
     <div
       className={[
-        "flex gap-1 overflow-x-auto border-b border-outline-variant/15 pb-px",
+        "flex gap-1 overflow-x-auto border-b border-outline-variant/[0.1] pb-px",
         className,
       ].join(" ")}
       role="tablist"
@@ -99,9 +99,9 @@ export function CollectionSectionTabs({
             role="tab"
             aria-selected={selected}
             className={[
-              "flex min-w-0 shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition",
+              "focus-ring-premium flex min-w-0 shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-[color,border-color] duration-200 ease-out",
               selected
-                ? "-mb-px border-primary text-primary"
+                ? "-mb-px border-primary font-semibold text-primary"
                 : "border-transparent text-on-surface-variant hover:text-on-surface",
             ].join(" ")}
           >

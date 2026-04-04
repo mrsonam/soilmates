@@ -42,9 +42,9 @@ export function PlantSectionTabs({ active, onChange }: PlantSectionTabsProps) {
               aria-selected={selected}
               onClick={() => onChange(t.id)}
               className={[
-                "relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-xl px-4 py-3 text-sm font-medium transition",
+                "relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-xl px-4 py-3 text-sm font-medium transition-[color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                 selected
-                  ? "text-primary"
+                  ? "font-semibold text-primary"
                   : "text-on-surface-variant hover:text-on-surface",
               ].join(" ")}
             >

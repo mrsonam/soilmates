@@ -29,10 +29,10 @@ export function NavItem({
       href={href}
       onClick={onNavigate}
       className={[
-        "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors duration-200",
+        "focus-ring-premium group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-[color,background-color,box-shadow,transform] duration-300 ease-out",
         active
-          ? "bg-surface-container-lowest text-primary shadow-(--shadow-ambient)"
-          : "text-on-surface-variant hover:bg-surface-container-high/80 hover:text-on-surface",
+          ? "bg-surface-container-lowest text-primary shadow-(--shadow-ambient) ring-1 ring-primary/[0.08]"
+          : "text-on-surface-variant hover:bg-surface-container-high/80 hover:text-on-surface active:scale-[0.99]",
         className,
       ].join(" ")}
       aria-current={active ? "page" : undefined}

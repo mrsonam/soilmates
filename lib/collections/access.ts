@@ -18,6 +18,47 @@ export async function getCollectionIdForActiveMember(
   return row?.collectionId ?? null;
 }
 
+/**
+ * Active membership for a collection slug, including when the collection is archived
+ * (read-only / restore flows).
+ */
+export async function getMembershipForCollectionSlug(
+  userId: string,
+  collectionSlug: string,
+): Promise<{
+  collectionId: string;
+  collection: {
+    id: string;
+    name: string;
+    slug: string;
+    archivedAt: Date | null;
+  };
+} | null> {
+  const row = await prisma.collectionMember.findFirst({
+    where: {
+      userId,
+      status: CollectionMemberStatus.active,
+      collection: { slug: collectionSlug },
+    },
+    select: {
+      collectionId: true,
+      collection: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          archivedAt: true,
+        },
+      },
+    },
+  });
+  if (!row) return null;
+  return {
+    collectionId: row.collectionId,
+    collection: row.collection,
+  };
+}
+
 /** Area row if it belongs to the collection the user can access. */
 export async function getAreaForActiveMember(
   userId: string,

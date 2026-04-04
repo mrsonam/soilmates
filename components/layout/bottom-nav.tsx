@@ -21,8 +21,10 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 className={[
-                  "flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-colors duration-200",
-                  active ? "text-primary" : "text-on-surface-variant",
+                  "focus-ring-premium flex min-h-[3.25rem] min-w-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-2 py-1.5 transition-[color,background-color,transform] duration-300 ease-out active:scale-[0.97]",
+                  active
+                    ? "text-primary bg-primary/[0.09]"
+                    : "text-on-surface-variant hover:bg-surface-container-high/80 hover:text-on-surface",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
               >

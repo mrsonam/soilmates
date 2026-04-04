@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getMembershipForCollectionSlug } from "@/lib/collections/access";
 import {
   CollectionMemberStatus,
   PlantDiagnosisStatus,
@@ -45,21 +46,16 @@ export const getPlantDiagnosisHistoryForMember = cache(
     active: DiagnosisHistoryItem | null;
     history: DiagnosisHistoryItem[];
   } | null> => {
-    const membership = await prisma.collectionMember.findFirst({
-      where: {
-        userId,
-        status: CollectionMemberStatus.active,
-        collection: { slug: collectionSlug, archivedAt: null },
-      },
-      select: { collectionId: true },
-    });
+    const membership = await getMembershipForCollectionSlug(
+      userId,
+      collectionSlug,
+    );
     if (!membership) return null;
 
     const plant = await prisma.plant.findFirst({
       where: {
         collectionId: membership.collectionId,
         slug: plantSlug,
-        archivedAt: null,
       },
       select: { id: true },
     });

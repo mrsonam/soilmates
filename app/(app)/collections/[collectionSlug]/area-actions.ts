@@ -311,5 +311,25 @@ export async function archiveAreaAction(
 
   revalidateCollection(collectionSlug);
   revalidateArea(collectionSlug, area.slug);
+  revalidatePath(`/collections/${collectionSlug}/archive`);
+
+  try {
+    const areaRow = await prisma.area.findFirst({
+      where: { id: areaId },
+      select: { name: true },
+    });
+    const who = await getActorLabel(session.user.id);
+    await createActivityEvent({
+      collectionId,
+      actorUserId: session.user.id,
+      eventType: ActivityEventTypes.areaArchived,
+      summary: `${who} archived area ${areaRow?.name ?? "an area"}`,
+      payload: { areaId, areaSlug: area.slug },
+      collectionSlug,
+    });
+  } catch (e) {
+    console.error("activity areaArchived", e);
+  }
+
   return { success: true };
 }

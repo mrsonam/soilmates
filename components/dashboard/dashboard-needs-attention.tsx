@@ -43,18 +43,20 @@ function statusPill(item: DueCareItem): { label: string; className: string } {
   if (item.status === "overdue") {
     return {
       label: "OVERDUE",
-      className: "bg-[#f0e4e0] text-[#6b4a42] ring-1 ring-[#e5d5cf]",
+      className:
+        "bg-primary-fixed/30 text-on-surface ring-1 ring-primary/15 dark:bg-primary-fixed/20 dark:text-on-surface",
     };
   }
   if (item.status === "due") {
     return {
       label: "DUE NOW",
-      className: "bg-primary-fixed/50 text-primary ring-1 ring-primary/20",
+      className: "bg-primary-fixed/45 text-primary ring-1 ring-primary/18",
     };
   }
   return {
     label: "SCHEDULED",
-    className: "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant/15",
+    className:
+      "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant/12",
   };
 }
 
@@ -66,7 +68,7 @@ function CompactCard({ item }: { item: DueCareItem }) {
   const href = `/collections/${item.collection.slug}/plants/${item.plant.slug}?tab=reminders`;
 
   return (
-    <div className="relative flex flex-col overflow-hidden rounded-3xl bg-surface-container-lowest shadow-[0_8px_30px_-12px_rgba(40,45,38,0.12)] ring-1 ring-outline-variant/[0.08]">
+    <div className="relative flex flex-col overflow-hidden rounded-3xl bg-surface-container-lowest shadow-[var(--shadow-card)] ring-1 ring-outline-variant/[0.07] transition-[transform,box-shadow] duration-300 ease-out hover:shadow-[var(--shadow-card-hover)]">
       <div className="relative min-h-[7.5rem] bg-gradient-to-br from-primary-fixed/25 via-surface-container-low to-surface-container-high/80">
         {item.plant.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

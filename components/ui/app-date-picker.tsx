@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { computeFloatingDropdownPosition } from "@/components/ui/floating-dropdown-position";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -91,6 +92,7 @@ export function AppDatePicker({
     top: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
 
   const parsed = value ? parseYmd(value) : null;
@@ -128,15 +130,21 @@ export function AppDatePicker({
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setPanelPos({
-      top: r.bottom + 6,
-      left: r.left,
-      width: Math.max(r.width, 280),
-    });
+    const width = Math.max(r.width, 280);
+    const maxCap = Math.min(22 * 16, window.innerHeight * 0.85);
+    setPanelPos(
+      computeFloatingDropdownPosition(r, {
+        width,
+        maxPanelHeightCapPx: maxCap,
+      }),
+    );
   }, []);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setPanelPos(null);
+      return;
+    }
     updatePos();
   }, [open, updatePos]);
 
@@ -209,21 +217,37 @@ export function AppDatePicker({
     [viewY, viewM],
   );
 
+  useLayoutEffect(() => {
+    if (!open || !panelPos) return;
+    const el = panelRef.current;
+    if (!el || typeof el.showPopover !== "function") return;
+    el.showPopover();
+    return () => {
+      try {
+        el.hidePopover();
+      } catch {
+        /* already hidden */
+      }
+    };
+  }, [open, panelPos]);
+
   const portal =
     open && panelPos && typeof document !== "undefined"
       ? createPortal(
           <div
             ref={panelRef}
             id={panelId}
-            role="dialog"
-            aria-modal="true"
+            role="group"
             aria-label="Choose date"
-            className="z-[300] rounded-2xl bg-surface-container-lowest p-3 shadow-(--shadow-ambient) ring-1 ring-outline-variant/15"
+            popover="manual"
+            className="overflow-y-auto rounded-2xl bg-surface-container-lowest p-3 shadow-(--shadow-ambient) ring-1 ring-outline-variant/15"
             style={{
               position: "fixed",
               top: panelPos.top,
               left: panelPos.left,
               width: panelPos.width,
+              maxHeight: panelPos.maxHeight,
+              boxSizing: "border-box",
             }}
           >
             <div className="mb-3 flex items-center justify-between gap-2">

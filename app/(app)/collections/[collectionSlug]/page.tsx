@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getCollectionDetailForActiveMember } from "@/lib/collections/collection-detail";
+import { getArchivedCountsForCollection } from "@/lib/archive/queries";
 import { getCollectionActivityForMember } from "@/lib/activity/queries";
 import { PageContainer } from "@/components/layout/page-container";
 import { CollectionDetailView } from "@/components/collections/collection-detail-view";
@@ -23,14 +24,19 @@ export default async function CollectionHomePage({ params, searchParams }: Props
   if (q.tab === "areas") {
     redirect(`/collections/${collectionSlug}/areas`);
   }
-  const [detail, activityPreview] = await Promise.all([
-    getCollectionDetailForActiveMember(session.user.id, collectionSlug),
-    getCollectionActivityForMember(session.user.id, collectionSlug, 8),
-  ]);
+  const detail = await getCollectionDetailForActiveMember(
+    session.user.id,
+    collectionSlug,
+  );
 
   if (!detail) {
     notFound();
   }
+
+  const [activityPreview, archivedCounts] = await Promise.all([
+    getCollectionActivityForMember(session.user.id, collectionSlug, 8),
+    getArchivedCountsForCollection(detail.id),
+  ]);
 
   const createdLabel = `Created ${formatShortDate(detail.createdAt.toISOString())}`;
   const uploadsEnabled = isSupabaseStorageConfigured();
@@ -49,6 +55,7 @@ export default async function CollectionHomePage({ params, searchParams }: Props
         collectionCoverUrl={detail.coverImageSignedUrl}
         uploadsEnabled={uploadsEnabled}
         activityPreview={activityPreview}
+        archivedItemCount={archivedCounts.plants + archivedCounts.areas}
       />
     </PageContainer>
   );

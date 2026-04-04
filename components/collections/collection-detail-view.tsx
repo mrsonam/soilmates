@@ -23,6 +23,7 @@ type CollectionDetailViewProps = {
   collectionCoverUrl: string | null;
   uploadsEnabled: boolean;
   activityPreview: ActivityFeedItem[];
+  archivedItemCount?: number;
 };
 
 export function CollectionDetailView({
@@ -37,6 +38,7 @@ export function CollectionDetailView({
   collectionCoverUrl,
   uploadsEnabled,
   activityPreview,
+  archivedItemCount = 0,
 }: CollectionDetailViewProps) {
   const showLiveMetrics = plantCount > 0;
   const heroBadge = showLiveMetrics ? "Collection thriving" : "Getting started";
@@ -57,6 +59,20 @@ export function CollectionDetailView({
       ) : null}
 
       <CollectionSectionTabs collectionSlug={collectionSlug} />
+
+      <div className="mt-3 flex justify-end">
+        <Link
+          href={`/collections/${collectionSlug}/archive`}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Archive &amp; restore
+          {archivedItemCount > 0 ? (
+            <span className="ml-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+              {archivedItemCount}
+            </span>
+          ) : null}
+        </Link>
+      </div>
 
       <div className="mt-6 space-y-8 sm:space-y-10">
           <CollectionStatsCards

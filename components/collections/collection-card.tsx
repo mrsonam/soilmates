@@ -35,7 +35,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   return (
     <Link
       href={`/collections/${slug}`}
-      className="group block overflow-hidden rounded-3xl bg-surface-container-lowest shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-16px_rgba(27,28,26,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
+      className="card-lift group block overflow-hidden rounded-3xl bg-surface-container-lowest ring-1 ring-outline-variant/[0.07] transition-[transform,box-shadow] duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary-fixed/35 via-surface-container-low to-primary-fixed-dim/40">
         {coverImageSignedUrl ? (

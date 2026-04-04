@@ -14,6 +14,7 @@ type PlantFavoriteToggleProps = {
   /** Large control on plant detail cover vs compact on grid cards */
   variant?: "hero" | "card";
   className?: string;
+  disabled?: boolean;
 };
 
 export function PlantFavoriteToggle({
@@ -22,6 +23,7 @@ export function PlantFavoriteToggle({
   initialFavorite,
   variant = "hero",
   className = "",
+  disabled = false,
 }: PlantFavoriteToggleProps) {
   const router = useRouter();
   const [favorite, setFavorite] = useState(initialFavorite);
@@ -35,6 +37,7 @@ export function PlantFavoriteToggle({
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      if (disabled) return;
       const next = !favorite;
       setFavorite(next);
       startTransition(async () => {
@@ -65,7 +68,7 @@ export function PlantFavoriteToggle({
         }
       });
     },
-    [collectionSlug, plantSlug, favorite, router],
+    [collectionSlug, plantSlug, favorite, router, disabled],
   );
 
   const isHero = variant === "hero";
@@ -74,7 +77,7 @@ export function PlantFavoriteToggle({
     <button
       type="button"
       onClick={toggle}
-      disabled={pending}
+      disabled={pending || disabled}
       aria-pressed={favorite}
       aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
       title={favorite ? "Remove from favorites" : "Add to favorites"}

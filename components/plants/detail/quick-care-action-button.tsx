@@ -21,10 +21,10 @@ export function QuickCareActionButton({
       disabled={disabled}
       onClick={onClick}
       className={[
-        "flex min-w-[5.5rem] flex-1 flex-col items-center gap-2 rounded-2xl px-3 py-3.5 text-center transition sm:min-w-0 sm:flex-none sm:px-5 sm:py-4",
+        "flex min-w-[5.5rem] flex-1 flex-col items-center gap-2 rounded-2xl px-3 py-3.5 text-center transition-[background-color,transform,box-shadow] duration-200 ease-out sm:min-w-0 sm:flex-none sm:px-5 sm:py-4",
         active
-          ? "bg-primary text-on-primary shadow-sm ring-1 ring-primary/20"
-          : "bg-surface-container-high/90 text-on-surface ring-1 ring-outline-variant/10 hover:bg-surface-container-highest",
+          ? "bg-primary text-on-primary shadow-sm ring-1 ring-primary/20 active:scale-[0.98]"
+          : "bg-surface-container-high/90 text-on-surface ring-1 ring-outline-variant/10 hover:bg-surface-container-highest active:scale-[0.97]",
         disabled ? "cursor-not-allowed opacity-50" : "",
       ].join(" ")}
     >

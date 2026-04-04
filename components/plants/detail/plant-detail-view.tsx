@@ -21,6 +21,8 @@ import type { ActivityFeedItem } from "@/lib/activity/queries";
 import { PlantActivityPreview } from "@/components/activity/plant-activity-preview";
 import { PlantAssistantPanel } from "@/components/assistant/plant-assistant-panel";
 import type { DiagnosisHistoryItem } from "@/lib/diagnosis/queries";
+import { PlantCareStatusBanners } from "@/components/archive/plant-care-status-banners";
+import { PlantArchiveSection } from "@/components/archive/plant-archive-section";
 
 type PlantDetailViewProps = {
   plant: PlantDetailModel;
@@ -61,20 +63,35 @@ export function PlantDetailView({
 }: PlantDetailViewProps) {
   const [tab, setTab] = useState<PlantDetailTabId>(initialTab ?? "overview");
 
+  const careFrozen =
+    plant.archivedAt != null || plant.collectionArchivedAt != null;
+  const canArchivePlant =
+    plant.archivedAt == null && plant.collectionArchivedAt == null;
+
   return (
     <div className="space-y-8 lg:space-y-10">
       <CollectionSectionTabs collectionSlug={collectionSlug} />
+
+      <PlantCareStatusBanners
+        collectionSlug={collectionSlug}
+        plantSlug={plant.slug}
+        nickname={plant.nickname}
+        plantArchivedAt={plant.archivedAt}
+        collectionArchivedAt={plant.collectionArchivedAt}
+      />
 
       <PlantHeroSummary
         plant={plant}
         activeDiagnosisSummary={diagnosisActive?.summary ?? null}
         collectionSlug={collectionSlug}
         plantSlug={plant.slug}
+        careFrozen={careFrozen}
       />
 
       <QuickCareActions
         collectionSlug={collectionSlug}
         plantSlug={plant.slug}
+        disabled={careFrozen}
       />
 
       <section className="rounded-3xl bg-surface-container-lowest/60 p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">
@@ -118,7 +135,7 @@ export function PlantDetailView({
               plantSlug={plant.slug}
               plantNickname={plant.nickname}
               images={galleryImages}
-              uploadsEnabled={uploadsEnabled}
+              uploadsEnabled={uploadsEnabled && !careFrozen}
               diagnosisHref={`/collections/${collectionSlug}/plants/${plant.slug}?tab=assistant#plant-check-in`}
             />
           )}
@@ -156,6 +173,14 @@ export function PlantDetailView({
           )}
         </div>
       </div>
+
+      {canArchivePlant ? (
+        <PlantArchiveSection
+          collectionSlug={collectionSlug}
+          plantSlug={plant.slug}
+          nickname={plant.nickname}
+        />
+      ) : null}
     </div>
   );
 }

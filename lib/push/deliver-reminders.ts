@@ -9,6 +9,7 @@ import type { PushSubscription } from "web-push";
 import { prisma } from "@/lib/prisma";
 import { computeReminderDisplayStatus } from "@/lib/reminders/status";
 import { configureWebPush, isWebPushConfigured } from "@/lib/push/configure";
+import { PWA_APP_ICON, PWA_BADGE_ICON } from "@/lib/pwa/branding";
 import {
   isUtcMinuteInQuietPeriod,
   utcMinutesFromDate,
@@ -169,8 +170,8 @@ async function sendPushToUser(
     title: payload.title,
     body: payload.body,
     url: payload.url,
-    icon: "/globe.svg",
-    badge: "/globe.svg",
+    icon: PWA_APP_ICON,
+    badge: PWA_BADGE_ICON,
   });
 
   let sent = 0;

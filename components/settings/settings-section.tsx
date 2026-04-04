@@ -12,8 +12,8 @@ export function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-3xl bg-surface-container-lowest/60 p-6 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-8">
-      <div className="flex gap-3 border-b border-outline-variant/10 pb-5">
+    <section className="rounded-3xl bg-surface-container-lowest/70 p-6 shadow-[var(--shadow-card)] ring-1 ring-outline-variant/[0.07] transition-shadow duration-300 sm:p-8">
+      <div className="flex gap-3 border-b border-outline-variant/[0.09] pb-5">
         {icon ? (
           <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             {icon}

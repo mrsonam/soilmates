@@ -31,14 +31,14 @@ export function Sidebar({
 
   return (
     <aside
-      className="hidden h-dvh max-h-dvh w-[17rem] shrink-0 flex-col border-r border-outline-variant/[0.12] bg-surface-container-low lg:sticky lg:top-0 lg:z-20 lg:flex lg:self-start"
+      className="hidden h-dvh max-h-dvh w-[17rem] shrink-0 flex-col border-r border-outline-variant/[0.08] bg-surface-container-low/90 lg:sticky lg:top-0 lg:z-20 lg:flex lg:self-start"
       aria-label="Main navigation"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pt-8">
           <Link
             href="/dashboard"
-            className="mb-8 flex items-center gap-2.5 px-2 transition-opacity hover:opacity-90"
+            className="focus-ring-premium mb-8 flex items-center gap-2.5 rounded-2xl px-2 py-1 transition-[opacity,transform] duration-300 hover:opacity-92 active:scale-[0.99]"
           >
             <span className="flex size-10 items-center justify-center rounded-2xl bg-primary/12 text-primary">
               <Leaf className="size-5" strokeWidth={1.75} aria-hidden />
@@ -101,7 +101,7 @@ export function Sidebar({
             </div>
             <Link
               href="/settings"
-              className="mt-3 flex items-center gap-2 rounded-2xl px-2 py-2 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface"
+              className="focus-ring-premium mt-3 flex items-center gap-2 rounded-2xl px-2 py-2 text-sm font-medium text-on-surface-variant transition-[background-color,color] duration-200 hover:bg-surface-container-high hover:text-on-surface"
             >
               <Settings className="size-4 shrink-0" strokeWidth={1.75} />
               Settings

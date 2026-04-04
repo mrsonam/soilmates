@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { CollectionMemberStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getMembershipForCollectionSlug } from "@/lib/collections/access";
 import {
   createSignedUrlsForPaths,
   isSupabaseStorageConfigured,
@@ -167,21 +168,16 @@ export const getPlantActivityForMember = cache(
     plantSlug: string,
     take = 20,
   ): Promise<ActivityFeedItem[]> => {
-    const member = await prisma.collectionMember.findFirst({
-      where: {
-        userId,
-        status: CollectionMemberStatus.active,
-        collection: { slug: collectionSlug, archivedAt: null },
-      },
-      select: { collectionId: true },
-    });
+    const member = await getMembershipForCollectionSlug(
+      userId,
+      collectionSlug,
+    );
     if (!member) return [];
 
     const plant = await prisma.plant.findFirst({
       where: {
         collectionId: member.collectionId,
         slug: plantSlug,
-        archivedAt: null,
       },
       select: { id: true },
     });

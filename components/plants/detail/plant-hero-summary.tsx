@@ -12,6 +12,8 @@ type PlantHeroSummaryProps = {
   activeDiagnosisSummary?: string | null;
   collectionSlug: string;
   plantSlug: string;
+  /** Archived plant or archived collection — disables favorites and new diagnosis. */
+  careFrozen?: boolean;
 };
 
 export function PlantHeroSummary({
@@ -19,6 +21,7 @@ export function PlantHeroSummary({
   activeDiagnosisSummary,
   collectionSlug,
   plantSlug,
+  careFrozen = false,
 }: PlantHeroSummaryProps) {
   const assistantCheckInHref = `/collections/${collectionSlug}/plants/${plantSlug}?tab=assistant#plant-check-in`;
   return (
@@ -31,6 +34,7 @@ export function PlantHeroSummary({
           initialFavorite={plant.isFavorite}
           variant="hero"
           className="absolute right-4 top-4"
+          disabled={careFrozen}
         />
       </div>
 
@@ -78,28 +82,47 @@ export function PlantHeroSummary({
           </p>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <DiagnosePlantButton
-            collectionSlug={collectionSlug}
-            plantSlug={plantSlug}
-          />
-        </div>
+        {careFrozen ? (
+          <p className="text-sm text-on-surface-variant">
+            {plant.collectionArchivedAt
+              ? "Editing and new check-ins are paused while this collection is archived."
+              : "Care actions are paused while this plant is archived. Your history below is unchanged."}
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <DiagnosePlantButton
+              collectionSlug={collectionSlug}
+              plantSlug={plantSlug}
+            />
+          </div>
+        )}
 
         {activeDiagnosisSummary?.trim() ? (
-          <Link
-            href={assistantCheckInHref}
-            className="block rounded-2xl bg-surface-container-high/50 px-4 py-3 text-left ring-1 ring-outline-variant/[0.1] transition hover:ring-primary/25"
-          >
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
-              Latest AI review
-            </p>
-            <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-on-surface">
-              {activeDiagnosisSummary.trim()}
-            </p>
-            <p className="mt-2 text-xs font-medium text-primary">
-              Open in Assistant
-            </p>
-          </Link>
+          careFrozen ? (
+            <div className="rounded-2xl bg-surface-container-high/50 px-4 py-3 ring-1 ring-outline-variant/[0.1]">
+              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                Latest AI review
+              </p>
+              <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-on-surface">
+                {activeDiagnosisSummary.trim()}
+              </p>
+            </div>
+          ) : (
+            <Link
+              href={assistantCheckInHref}
+              className="block rounded-2xl bg-surface-container-high/50 px-4 py-3 text-left ring-1 ring-outline-variant/[0.1] transition hover:ring-primary/25"
+            >
+              <p className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                Latest AI review
+              </p>
+              <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-on-surface">
+                {activeDiagnosisSummary.trim()}
+              </p>
+              <p className="mt-2 text-xs font-medium text-primary">
+                Open in Assistant
+              </p>
+            </Link>
+          )
         ) : null}
       </div>
     </div>

@@ -96,7 +96,7 @@ export function AppHeader({
       : null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-outline-variant/10 bg-surface/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-outline-variant/[0.08] bg-surface/88 backdrop-blur-xl backdrop-saturate-150 shadow-[var(--shadow-header)]">
       <div className="flex min-h-14 justify-center px-4 py-2 sm:min-h-[3.75rem] sm:px-6 sm:py-0 lg:px-8">
         <div className="flex w-full items-center gap-3 lg:gap-4">
           <div className="flex min-w-0 flex-1 flex-col">
@@ -134,7 +134,7 @@ export function AppHeader({
             {pendingInviteCount > 0 ? (
               <Link
                 href="/invitations"
-                className="relative flex size-10 items-center justify-center rounded-2xl text-on-surface-variant transition hover:bg-surface-container-high hover:text-primary"
+                className="focus-ring-premium relative flex size-10 items-center justify-center rounded-2xl text-on-surface-variant transition-colors duration-200 hover:bg-surface-container-high hover:text-primary"
                 aria-label={`${pendingInviteCount} pending invitations`}
               >
                 <Mail className="size-5" strokeWidth={1.75} aria-hidden />

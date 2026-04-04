@@ -19,6 +19,12 @@ export const ActivityEventTypes = {
   inviteDeclined: "invite_declined",
   inviteRevoked: "invite_revoked",
   memberRemoved: "member_removed",
+  plantArchived: "plant_archived",
+  plantRestored: "plant_restored",
+  areaArchived: "area_archived",
+  areaRestored: "area_restored",
+  collectionArchived: "collection_archived",
+  collectionRestored: "collection_restored",
 } as const;
 
 export type ActivityEventTypeId =

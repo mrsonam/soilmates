@@ -52,7 +52,7 @@ export function CollectionSwitcher({ collections }: CollectionSwitcherProps) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 rounded-2xl bg-surface-container-high/70 px-3 py-2.5 text-left text-sm text-on-surface transition hover:bg-surface-container-high"
+        className="focus-ring-premium flex w-full items-center justify-between gap-2 rounded-2xl bg-surface-container-high/75 px-3 py-2.5 text-left text-sm text-on-surface ring-1 ring-outline-variant/[0.06] transition-[background-color] duration-200 hover:bg-surface-container-high"
         aria-expanded={open}
         aria-haspopup="listbox"
       >
@@ -80,15 +80,19 @@ export function CollectionSwitcher({ collections }: CollectionSwitcherProps) {
           role="listbox"
         >
           {collections.map((c) => (
-            <li key={c.id} role="option">
+            <li
+              key={c.id}
+              role="option"
+              aria-selected={c.slug === current?.slug}
+            >
               <Link
                 href={`/collections/${c.slug}`}
                 onClick={() => setOpen(false)}
                 className={[
-                  "block truncate px-3 py-2.5 text-sm transition",
+                  "block truncate px-3 py-2.5 text-sm transition-colors duration-200",
                   c.slug === current?.slug
-                    ? "bg-surface-container-low font-medium text-primary"
-                    : "text-on-surface hover:bg-surface-container-low/80",
+                    ? "bg-primary/[0.07] font-medium text-primary"
+                    : "text-on-surface hover:bg-surface-container-low/90",
                 ].join(" ")}
               >
                 {c.name}

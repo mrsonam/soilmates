@@ -17,6 +17,7 @@ import { ThemeSelector } from "@/components/settings/theme-selector";
 import { UnitsSelector } from "@/components/settings/units-selector";
 import {
   Bell,
+  Database,
   Droplets,
   Leaf,
   Palette,
@@ -24,6 +25,9 @@ import {
   UserRound,
   Workflow,
 } from "lucide-react";
+import { getArchivedCollectionsForUser } from "@/lib/archive/queries";
+import { ExportDataCard } from "@/components/settings/export-data-card";
+import { ArchivedCollectionsCard } from "@/components/settings/archived-collections-card";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -33,13 +37,14 @@ export default async function SettingsPage() {
 
   const userId = session.user.id;
 
-  const [settings, collectionOptions, activeSubscriptionCount] =
+  const [settings, collectionOptions, activeSubscriptionCount, archivedCols] =
     await Promise.all([
       getUserSettingsBundle(userId),
       getDefaultCollectionOptions(userId),
       prisma.pushSubscription.count({
         where: { userId, revokedAt: null },
       }),
+      getArchivedCollectionsForUser(userId),
     ]);
 
   if (!settings) {
@@ -133,6 +138,31 @@ export default async function SettingsPage() {
               defaultCollectionId={settings.defaultCollectionId}
             />
           )}
+        </SettingsSection>
+
+        <SettingsSection
+          icon={<Database className="size-5" strokeWidth={1.75} />}
+          title="Data & privacy"
+          description="Own your plant history. Export a copy anytime, or restore archived collections."
+        >
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-sm font-semibold text-on-surface">
+                Download your data
+              </h3>
+              <div className="mt-3">
+                <ExportDataCard />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-on-surface">
+                Archived collections
+              </h3>
+              <div className="mt-3">
+                <ArchivedCollectionsCard collections={archivedCols} />
+              </div>
+            </div>
+          </div>
         </SettingsSection>
 
         <SettingsSection

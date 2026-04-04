@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { getCollectionIdForActiveMember } from "@/lib/collections/access";
+import { getMembershipForCollectionSlug } from "@/lib/collections/access";
 
 export type CareLogListItem = {
   id: string;
@@ -28,17 +28,16 @@ export const getPlantCareLogs = cache(
     collectionSlug: string,
     plantSlug: string,
   ): Promise<CareLogListItem[] | null> => {
-    const collectionId = await getCollectionIdForActiveMember(
+    const membership = await getMembershipForCollectionSlug(
       userId,
       collectionSlug,
     );
-    if (!collectionId) return null;
+    if (!membership) return null;
 
     const plant = await prisma.plant.findFirst({
       where: {
-        collectionId,
+        collectionId: membership.collectionId,
         slug: plantSlug,
-        archivedAt: null,
       },
       select: { id: true },
     });

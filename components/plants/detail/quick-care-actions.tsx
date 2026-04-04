@@ -30,11 +30,13 @@ const ACTIONS: {
 type QuickCareActionsProps = {
   collectionSlug: string;
   plantSlug: string;
+  disabled?: boolean;
 };
 
 export function QuickCareActions({
   collectionSlug,
   plantSlug,
+  disabled = false,
 }: QuickCareActionsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -50,6 +52,7 @@ export function QuickCareActions({
 
   const logAction = useCallback(
     (actionType: QuickCareAction) => {
+      if (disabled) return;
       startTransition(async () => {
         const res = await runOrEnqueueMutation({
           operationType: SyncOperationType.QUICK_CARE_LOG,
@@ -90,7 +93,7 @@ export function QuickCareActions({
         }
       });
     },
-    [collectionSlug, plantSlug, router],
+    [collectionSlug, plantSlug, router, disabled],
   );
 
   return (
@@ -101,7 +104,9 @@ export function QuickCareActions({
             Quick care log
           </p>
           <p className="mt-1 text-sm text-on-surface-variant">
-            Tap to record what you did — timestamp saved automatically.
+            {disabled
+              ? "Unavailable while this plant or collection is archived."
+              : "Tap to record what you did — timestamp saved automatically."}
           </p>
         </div>
         {flash ? (
@@ -121,7 +126,7 @@ export function QuickCareActions({
             label={label}
             Icon={Icon}
             active={lastAction === type && flash === "Saved"}
-            disabled={pending}
+            disabled={pending || disabled}
             onClick={() => logAction(type)}
           />
         ))}

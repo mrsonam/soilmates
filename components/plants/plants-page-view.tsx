@@ -35,7 +35,7 @@ function PlantsToolbar() {
       >
         <button
           type="button"
-          className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary"
+          className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-sm ring-1 ring-primary/15 transition-[transform,opacity] duration-200"
           aria-current="true"
         >
           All plants
@@ -108,7 +108,7 @@ export function PlantsPageView(props: PlantsPageViewProps) {
   const addButton = (
     <Link
       href={addHref}
-      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-medium text-on-primary transition hover:bg-primary/90 sm:self-auto"
+      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-medium text-on-primary shadow-sm ring-1 ring-primary/20 transition-[background-color,transform,box-shadow] duration-200 hover:bg-primary/92 active:scale-[0.98] sm:self-auto"
     >
       <Plus className="size-4" strokeWidth={2.25} aria-hidden />
       Add plant
