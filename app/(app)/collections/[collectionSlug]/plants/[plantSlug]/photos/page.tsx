@@ -47,6 +47,7 @@ export default async function PlantPhotosPage({ params }: Props) {
         plantNickname={plant.nickname}
         images={galleryImages}
         uploadsEnabled={isSupabaseStorageConfigured()}
+        diagnosisHref={`/collections/${collectionSlug}/plants/${plant.slug}?tab=assistant#plant-check-in`}
       />
     </PageContainer>
   );

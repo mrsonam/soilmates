@@ -10,6 +10,8 @@ import {
   pauseReminderAction,
   resumeReminderAction,
 } from "@/app/(app)/collections/[collectionSlug]/plants/reminder-actions";
+import { SyncEntityType, SyncOperationType } from "@/lib/sync/operation-types";
+import { runOrEnqueueMutation } from "@/lib/sync/run-or-enqueue";
 import { DueDateLabel } from "@/components/reminders/due-date-label";
 import { ReminderRecurrenceSummary } from "@/components/reminders/reminder-recurrence-summary";
 import { ReminderStatusBadge } from "@/components/reminders/reminder-status-badge";
@@ -45,11 +47,25 @@ export function ReminderCard({
   }, [menuOpen]);
 
   function run(
+    operationType: string,
+    payload: Record<string, unknown>,
     fn: () => Promise<{ ok: boolean; error?: string }>,
   ) {
     startTransition(async () => {
-      const r = await fn();
-      if (r.ok) router.refresh();
+      const r = await runOrEnqueueMutation({
+        operationType,
+        entityType: SyncEntityType.REMINDER,
+        entityId: item.id,
+        payload,
+        execute: fn,
+      });
+      if (r.ok) {
+        try {
+          router.refresh();
+        } catch {
+          /* ignore */
+        }
+      }
     });
   }
 
@@ -87,12 +103,19 @@ export function ReminderCard({
               type="button"
               disabled={pending}
               onClick={() =>
-                run(() =>
-                  completeReminderAction({
+                run(
+                  SyncOperationType.REMINDER_COMPLETE,
+                  {
                     collectionSlug,
                     plantSlug,
                     reminderId: item.id,
-                  }),
+                  },
+                  () =>
+                    completeReminderAction({
+                      collectionSlug,
+                      plantSlug,
+                      reminderId: item.id,
+                    }),
                 )
               }
               className={[
@@ -136,12 +159,19 @@ export function ReminderCard({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                     onClick={() => {
                       setMenuOpen(false);
-                      run(() =>
-                        resumeReminderAction({
+                      run(
+                        SyncOperationType.REMINDER_RESUME,
+                        {
                           collectionSlug,
                           plantSlug,
                           reminderId: item.id,
-                        }),
+                        },
+                        () =>
+                          resumeReminderAction({
+                            collectionSlug,
+                            plantSlug,
+                            reminderId: item.id,
+                          }),
                       );
                     }}
                   >
@@ -154,12 +184,19 @@ export function ReminderCard({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                     onClick={() => {
                       setMenuOpen(false);
-                      run(() =>
-                        pauseReminderAction({
+                      run(
+                        SyncOperationType.REMINDER_PAUSE,
+                        {
                           collectionSlug,
                           plantSlug,
                           reminderId: item.id,
-                        }),
+                        },
+                        () =>
+                          pauseReminderAction({
+                            collectionSlug,
+                            plantSlug,
+                            reminderId: item.id,
+                          }),
                       );
                     }}
                   >
@@ -172,12 +209,19 @@ export function ReminderCard({
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                   onClick={() => {
                     setMenuOpen(false);
-                    run(() =>
-                      archiveReminderAction({
+                    run(
+                      SyncOperationType.REMINDER_ARCHIVE,
+                      {
                         collectionSlug,
                         plantSlug,
                         reminderId: item.id,
-                      }),
+                      },
+                      () =>
+                        archiveReminderAction({
+                          collectionSlug,
+                          plantSlug,
+                          reminderId: item.id,
+                        }),
                     );
                   }}
                 >

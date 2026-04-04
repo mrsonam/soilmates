@@ -7,7 +7,6 @@ export type PlantDetailTabId =
   | "care_history"
   | "photos"
   | "reminders"
-  | "diagnosis"
   | "assistant"
   | "activity";
 
@@ -16,7 +15,6 @@ const TABS: { id: PlantDetailTabId; label: string; icon?: "sparkles" }[] = [
   { id: "care_history", label: "Care history" },
   { id: "photos", label: "Photos" },
   { id: "reminders", label: "Reminders" },
-  { id: "diagnosis", label: "Diagnosis" },
   { id: "assistant", label: "Assistant", icon: "sparkles" },
   { id: "activity", label: "Activity" },
 ];

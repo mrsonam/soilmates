@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AppSelect } from "@/components/ui/app-select";
 import type { GlobalSearchFilters, SearchEntityType } from "@/lib/search/types";
 
 type CollectionOption = { id: string; slug: string; name: string };
@@ -97,93 +98,97 @@ export function SearchFilters({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <select
+        <AppSelect
+          variant="toolbar"
+          className="min-w-[11rem] max-w-[min(100vw,16rem)]"
+          options={[
+            { value: "", label: "All spaces" },
+            ...collections.map((c) => ({ value: c.slug, label: c.name })),
+          ]}
           value={activeFilters.collectionSlug ?? ""}
-          onChange={(e) =>
-            update({ collection: e.target.value ? e.target.value : null })
+          onChange={(v) =>
+            update({ collection: v ? v : null })
           }
-          className="h-10 rounded-2xl bg-surface-container-high px-3 text-sm text-on-surface ring-1 ring-outline-variant/15 outline-none transition focus:ring-2 focus:ring-primary/25"
           aria-label="Filter by collection"
-        >
-          <option value="">All spaces</option>
-          {collections.map((c) => (
-            <option key={c.slug} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        />
 
-        <select
+        <AppSelect
+          variant="toolbar"
+          className="min-w-[10.5rem]"
+          options={[
+            { value: "", label: "Any health" },
+            { value: "thriving", label: "Thriving" },
+            { value: "needs_attention", label: "Needs attention" },
+          ]}
           value={activeFilters.plantHealthStatus ?? ""}
-          onChange={(e) =>
-            update({ plantHealth: e.target.value ? e.target.value : null })
+          onChange={(v) =>
+            update({ plantHealth: v ? v : null })
           }
-          className="h-10 rounded-2xl bg-surface-container-high px-3 text-sm text-on-surface ring-1 ring-outline-variant/15 outline-none transition focus:ring-2 focus:ring-primary/25"
           aria-label="Filter plants by health"
-        >
-          <option value="">Any health</option>
-          <option value="thriving">Thriving</option>
-          <option value="needs_attention">Needs attention</option>
-        </select>
+        />
 
-        <select
+        <AppSelect
+          variant="toolbar"
+          className="min-w-[10rem]"
+          options={[
+            { value: "", label: "Any stage" },
+            { value: "sprout", label: "Sprout" },
+            { value: "juvenile", label: "Juvenile" },
+            { value: "mature", label: "Mature" },
+          ]}
           value={activeFilters.plantLifeStage ?? ""}
-          onChange={(e) =>
-            update({ plantStage: e.target.value ? e.target.value : null })
+          onChange={(v) =>
+            update({ plantStage: v ? v : null })
           }
-          className="h-10 rounded-2xl bg-surface-container-high px-3 text-sm text-on-surface ring-1 ring-outline-variant/15 outline-none transition focus:ring-2 focus:ring-primary/25"
           aria-label="Filter plants by life stage"
-        >
-          <option value="">Any stage</option>
-          <option value="sprout">Sprout</option>
-          <option value="juvenile">Juvenile</option>
-          <option value="mature">Mature</option>
-        </select>
+        />
 
-        <select
+        <AppSelect
+          variant="toolbar"
+          className="min-w-[12rem]"
+          options={[
+            { value: "", label: "Any reminder status" },
+            { value: "upcoming", label: "Upcoming" },
+            { value: "due", label: "Due" },
+            { value: "overdue", label: "Overdue" },
+            { value: "paused", label: "Paused" },
+          ]}
           value={activeFilters.reminderStatus ?? ""}
-          onChange={(e) =>
-            update({
-              reminderStatus: e.target.value ? e.target.value : null,
-            })
+          onChange={(v) =>
+            update({ reminderStatus: v ? v : null })
           }
-          className="h-10 rounded-2xl bg-surface-container-high px-3 text-sm text-on-surface ring-1 ring-outline-variant/15 outline-none transition focus:ring-2 focus:ring-primary/25"
           aria-label="Filter reminders by status"
-        >
-          <option value="">Any reminder status</option>
-          <option value="upcoming">Upcoming</option>
-          <option value="due">Due</option>
-          <option value="overdue">Overdue</option>
-          <option value="paused">Paused</option>
-        </select>
+        />
 
-        <select
+        <AppSelect
+          variant="toolbar"
+          className="min-w-[12rem] max-w-[min(100vw,18rem)]"
+          options={[
+            { value: "", label: "Any care action" },
+            { value: "watered", label: "Watered" },
+            { value: "fertilized", label: "Fertilized" },
+            { value: "misted", label: "Misted" },
+            { value: "pruned", label: "Pruned" },
+            { value: "repotted", label: "Repotted" },
+            { value: "soil_changed", label: "Soil changed" },
+            { value: "rotated", label: "Rotated" },
+            { value: "moved_location", label: "Moved location" },
+            { value: "pest_treatment", label: "Pest treatment" },
+            { value: "cleaned_leaves", label: "Cleaned leaves" },
+            { value: "propagated", label: "Propagated" },
+            { value: "seeded", label: "Seeded" },
+            { value: "germinated", label: "Germinated" },
+            { value: "harvested", label: "Harvested" },
+            { value: "plant_died", label: "Plant died" },
+            { value: "observation", label: "Observation" },
+            { value: "custom", label: "Custom" },
+          ]}
           value={activeFilters.careActionType ?? ""}
-          onChange={(e) =>
-            update({ careAction: e.target.value ? e.target.value : null })
+          onChange={(v) =>
+            update({ careAction: v ? v : null })
           }
-          className="h-10 rounded-2xl bg-surface-container-high px-3 text-sm text-on-surface ring-1 ring-outline-variant/15 outline-none transition focus:ring-2 focus:ring-primary/25"
           aria-label="Filter care logs by action"
-        >
-          <option value="">Any care action</option>
-          <option value="watered">Watered</option>
-          <option value="fertilized">Fertilized</option>
-          <option value="misted">Misted</option>
-          <option value="pruned">Pruned</option>
-          <option value="repotted">Repotted</option>
-          <option value="soil_changed">Soil changed</option>
-          <option value="rotated">Rotated</option>
-          <option value="moved_location">Moved location</option>
-          <option value="pest_treatment">Pest treatment</option>
-          <option value="cleaned_leaves">Cleaned leaves</option>
-          <option value="propagated">Propagated</option>
-          <option value="seeded">Seeded</option>
-          <option value="germinated">Germinated</option>
-          <option value="harvested">Harvested</option>
-          <option value="plant_died">Plant died</option>
-          <option value="observation">Observation</option>
-          <option value="custom">Custom</option>
-        </select>
+        />
 
         <button
           type="button"

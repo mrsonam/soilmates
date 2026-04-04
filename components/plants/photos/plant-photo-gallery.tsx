@@ -19,6 +19,8 @@ type PlantPhotoGalleryProps = {
   images: PlantGalleryImage[];
   uploadsEnabled: boolean;
   variant?: "tab" | "full";
+  /** Deep-link to plant Assistant tab (photo check-in section). */
+  diagnosisHref?: string;
 };
 
 export function PlantPhotoGallery({
@@ -28,6 +30,7 @@ export function PlantPhotoGallery({
   images,
   uploadsEnabled,
   variant = "full",
+  diagnosisHref,
 }: PlantPhotoGalleryProps) {
   const router = useRouter();
   const [lightbox, setLightbox] = useState<PlantGalleryImage | null>(null);
@@ -64,10 +67,20 @@ export function PlantPhotoGallery({
           </p>
         </header>
       ) : (
-        <p className="text-sm leading-relaxed text-on-surface-variant">
-          Track how {plantNickname} grows over time. Open the full gallery for
-          the complete timeline.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed text-on-surface-variant">
+            Track how {plantNickname} grows over time. Open the full gallery for
+            the complete timeline.
+          </p>
+          {diagnosisHref && images.length > 0 ? (
+            <Link
+              href={diagnosisHref}
+              className="inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Use these photos for a plant check-in
+            </Link>
+          ) : null}
+        </div>
       )}
 
       {images.length === 0 ? (

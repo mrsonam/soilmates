@@ -70,9 +70,20 @@ export function PlantOverviewPanel({
             <MetaBlock label="Life stage">
               {labelLifeStage(plant.lifeStage)}
             </MetaBlock>
-            <MetaBlock label="Health">
+            <MetaBlock label="Health (your view)">
               <PlantStatusBadge status={plant.healthStatus} />
             </MetaBlock>
+            {plant.aiHealthStatus ? (
+              <MetaBlock label="AI assessment">
+                <span className="text-on-surface-variant">
+                  Last structured review suggests:{" "}
+                  <span className="font-medium text-on-surface">
+                    {plant.aiHealthStatus.replace("_", " ")}
+                  </span>
+                  . You can override your own health label anytime.
+                </span>
+              </MetaBlock>
+            ) : null}
           </dl>
         </div>
 

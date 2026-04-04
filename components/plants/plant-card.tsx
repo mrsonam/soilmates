@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Armchair, Heart } from "lucide-react";
+import { Armchair } from "lucide-react";
 import type { PlantListItem } from "@/lib/plants/queries";
 import { PlantLifeStageBadge } from "./plant-life-stage-badge";
 import { PlantStatusBadge } from "./plant-status-badge";
 import { PlantImagePlaceholder } from "./plant-image-placeholder";
+import { PlantFavoriteToggle } from "@/components/plants/detail/plant-favorite-toggle";
 
 type PlantCardProps = {
   plant: PlantListItem;
@@ -34,12 +35,12 @@ export function PlantCard({ plant, showCollectionLabel }: PlantCardProps) {
           <PlantImagePlaceholder className="aspect-[4/3]" />
         )}
         <div className="absolute right-3 top-3 flex items-center gap-2">
-          {plant.isFavorite && (
-            <span className="flex size-8 items-center justify-center rounded-full bg-surface/90 text-primary shadow-sm ring-1 ring-outline-variant/10 backdrop-blur-sm">
-              <Heart className="size-4 fill-primary/25" strokeWidth={1.75} aria-hidden />
-              <span className="sr-only">Favorite</span>
-            </span>
-          )}
+          <PlantFavoriteToggle
+            collectionSlug={plant.collection.slug}
+            plantSlug={plant.slug}
+            initialFavorite={plant.isFavorite}
+            variant="card"
+          />
           <PlantLifeStageBadge stage={plant.lifeStage} />
         </div>
       </div>

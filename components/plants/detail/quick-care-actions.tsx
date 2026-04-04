@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Droplets,
   Eye,
@@ -10,6 +11,8 @@ import {
 } from "lucide-react";
 import { createQuickCareLogAction } from "@/app/(app)/collections/[collectionSlug]/plants/care-log-actions";
 import type { QuickCareAction } from "@/lib/validations/care-log";
+import { SyncEntityType, SyncOperationType } from "@/lib/sync/operation-types";
+import { runOrEnqueueMutation } from "@/lib/sync/run-or-enqueue";
 import { QuickCareActionButton } from "./quick-care-action-button";
 
 const ACTIONS: {
@@ -33,6 +36,7 @@ export function QuickCareActions({
   collectionSlug,
   plantSlug,
 }: QuickCareActionsProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [flash, setFlash] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<QuickCareAction | null>(null);
@@ -47,14 +51,29 @@ export function QuickCareActions({
   const logAction = useCallback(
     (actionType: QuickCareAction) => {
       startTransition(async () => {
-        const res = await createQuickCareLogAction({
-          collectionSlug,
-          plantSlug,
-          actionType,
+        const res = await runOrEnqueueMutation({
+          operationType: SyncOperationType.QUICK_CARE_LOG,
+          entityType: SyncEntityType.CARE_LOG,
+          payload: { collectionSlug, plantSlug, actionType },
+          execute: () =>
+            createQuickCareLogAction({
+              collectionSlug,
+              plantSlug,
+              actionType,
+            }),
         });
         if (res.ok) {
           setLastAction(actionType);
-          setFlash("Saved");
+          setFlash(
+            "queued" in res && res.queued
+              ? "Queued — will sync when you’re online"
+              : "Saved",
+          );
+          try {
+            router.refresh();
+          } catch {
+            /* ignore */
+          }
           if (clearTimer.current) clearTimeout(clearTimer.current);
           clearTimer.current = setTimeout(() => {
             setFlash(null);
@@ -62,7 +81,7 @@ export function QuickCareActions({
             clearTimer.current = null;
           }, 2200);
         } else {
-          setFlash(res.error);
+          setFlash(res.error ?? "Could not save");
           if (clearTimer.current) clearTimeout(clearTimer.current);
           clearTimer.current = setTimeout(() => {
             setFlash(null);
@@ -71,7 +90,7 @@ export function QuickCareActions({
         }
       });
     },
-    [collectionSlug, plantSlug],
+    [collectionSlug, plantSlug, router],
   );
 
   return (

@@ -3,6 +3,7 @@ import {
   Activity,
   Home,
   LayoutDashboard,
+  Mail,
   MessageCircle,
   Settings,
   Sprout,
@@ -19,6 +20,7 @@ export type NavEntry = {
 export const sidebarNav: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/collections", label: "Collections", icon: FolderKanban },
+  { href: "/invitations", label: "Invitations", icon: Mail },
   { href: "/plants", label: "Plants", icon: Sprout },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/assistant", label: "Assistant", icon: MessageCircle },
@@ -57,5 +59,6 @@ export function titleForPath(pathname: string): string {
   if (pathname.startsWith("/activity")) return "Activity";
   if (pathname.startsWith("/assistant")) return "Assistant";
   if (pathname.startsWith("/settings")) return "Settings";
+  if (pathname.startsWith("/invitations")) return "Invitations";
   return "Soil Mates";
 }

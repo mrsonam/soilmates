@@ -1,14 +1,26 @@
-"use client";
-
 import { AssistantChat } from "./assistant-chat";
+import type { PlantGalleryImage } from "@/lib/plants/plant-images";
+import type { DiagnosisHistoryItem } from "@/lib/diagnosis/queries";
 
 export function PlantAssistantPanel({
   threadId,
   plantNickname,
   initialMessages,
+  collectionSlug,
+  plantSlug,
+  galleryImages,
+  uploadsEnabled,
+  diagnosisActive,
+  diagnosisHistory,
 }: {
   threadId: string;
   plantNickname: string;
+  collectionSlug: string;
+  plantSlug: string;
+  galleryImages: PlantGalleryImage[];
+  uploadsEnabled: boolean;
+  diagnosisActive: DiagnosisHistoryItem | null;
+  diagnosisHistory: DiagnosisHistoryItem[];
   initialMessages: Array<{
     id: string;
     role: "user" | "assistant" | "system" | "tool";
@@ -17,26 +29,35 @@ export function PlantAssistantPanel({
   }>;
 }) {
   return (
-    <div className="rounded-2xl bg-surface-container-lowest/40 p-4 ring-1 ring-outline-variant/[0.08] sm:p-6">
-      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-            Plant context
-          </p>
-          <h2 className="font-display text-lg font-semibold text-on-surface">
-            Assistant for {plantNickname}
-          </h2>
-        </div>
-        <p className="max-w-md text-sm text-on-surface-variant">
-          Answers use your care history, reminders, photos metadata, and recent
-          activity from this plant’s record.
+    <div
+      id="plant-check-in"
+      className="scroll-mt-24 rounded-2xl bg-surface-container-lowest/40 p-4 ring-1 ring-outline-variant/[0.08] sm:p-6"
+    >
+      <div className="mb-6 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Plant assistant
+        </p>
+        <h2 className="font-display text-lg font-semibold text-on-surface">
+          Chat &amp; check-in for {plantNickname}
+        </h2>
+        <p className="max-w-2xl text-sm leading-relaxed text-on-surface-variant">
+          Chat about care here; use the{" "}
+          <span className="font-medium text-on-surface">images</span> button in the
+          message bar when you want a structured photo review.
         </p>
       </div>
+
       <AssistantChat
         mode="plant"
         threadId={threadId}
         initialMessages={initialMessages}
         plantNickname={plantNickname}
+        collectionSlug={collectionSlug}
+        plantSlug={plantSlug}
+        galleryImages={galleryImages}
+        uploadsEnabled={uploadsEnabled}
+        diagnosisActive={diagnosisActive}
+        diagnosisHistory={diagnosisHistory}
       />
     </div>
   );

@@ -12,7 +12,10 @@ type PlantPhotoTimelineProps = {
 
 function monthLabel(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+  return new Intl.DateTimeFormat("en", {
+    month: "long",
+    year: "numeric",
+  }).format(d);
 }
 
 function sortKey(iso: string) {

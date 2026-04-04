@@ -21,6 +21,8 @@ export type PlantDetailModel = {
   primaryImageId: string | null;
   lifeStage: string;
   healthStatus: string;
+  /** Latest AI assessment from diagnosis (separate from manual `healthStatus`). */
+  aiHealthStatus: string | null;
   acquisitionType: string;
   acquiredAt: string | null;
   notes: string | null;
@@ -81,6 +83,7 @@ export const getPlantDetailBySlugs = cache(
         },
         lifeStage: true,
         healthStatus: true,
+        aiHealthStatus: true,
         acquisitionType: true,
         acquiredAt: true,
         notes: true,
@@ -126,6 +129,7 @@ export const getPlantDetailBySlugs = cache(
       primaryImageId: row.primaryImageId,
       lifeStage: row.lifeStage,
       healthStatus: row.healthStatus,
+      aiHealthStatus: row.aiHealthStatus ? String(row.aiHealthStatus) : null,
       acquisitionType: row.acquisitionType,
       acquiredAt: row.acquiredAt
         ? row.acquiredAt.toISOString().slice(0, 10)

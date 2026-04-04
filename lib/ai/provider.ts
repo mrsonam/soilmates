@@ -1,5 +1,14 @@
 import type { GlobalAssistantContextJson, PlantAssistantContextJson } from "./types";
 import { buildGlobalSystemPrompt, buildPlantSystemPrompt } from "./prompts";
+import {
+  getNvidiaApiKey,
+  getNvidiaChatModel,
+  postNvidiaChatCompletion,
+} from "./nvidia-integrate";
+import {
+  extractTextFromChatContent,
+  mergeConsecutiveSameRoleMessages,
+} from "./chat-content";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -11,16 +20,16 @@ export type GenerateAssistantReplyInput = {
   plantContext?: PlantAssistantContextJson;
 };
 
-function parseChatCompletionJson(data: unknown): string | null {
+function parseChatCompletionText(data: unknown): string | null {
   const d = data as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{ message?: { content?: unknown } }>;
   };
-  return d.choices?.[0]?.message?.content?.trim() ?? null;
+  const content = d.choices?.[0]?.message?.content;
+  return extractTextFromChatContent(content);
 }
 
 /**
- * Calls the configured AI provider server-side. Abstracted from UI and persistence.
- * Priority: OpenAI (`OPENAI_API_KEY`) -> local fallback.
+ * Calls NVIDIA integrate chat completions server-side. Falls back if `NVIDIA_API_KEY` is unset.
  */
 export async function generateAssistantReply(
   input: GenerateAssistantReplyInput,
@@ -36,35 +45,32 @@ export async function generateAssistantReply(
             assembledAt: new Date().toISOString(),
           });
 
-  const messages: Array<{ role: string; content: string }> = [
+  const rawMessages: Array<{ role: string; content: string }> = [
     { role: "system", content: system },
     ...input.history.map((m) => ({ role: m.role, content: m.content })),
     { role: "user", content: input.userMessage },
   ];
+  const messages = mergeConsecutiveSameRoleMessages(rawMessages);
 
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey) {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-        messages,
-        temperature: 0.7,
-        max_tokens: 1200,
-      }),
+  if (getNvidiaApiKey()) {
+    const res = await postNvidiaChatCompletion({
+      model: getNvidiaChatModel(),
+      messages,
+      temperature: 0.2,
+      top_p: 0.7,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      max_tokens: Number(process.env.NVIDIA_ASSISTANT_MAX_TOKENS) || 1200,
+      stream: false,
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
-      throw new Error(`OpenAI error ${res.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`NVIDIA API error ${res.status}: ${errText.slice(0, 200)}`);
     }
 
     const data = (await res.json()) as unknown;
-    const text = parseChatCompletionJson(data);
+    const text = parseChatCompletionText(data);
     if (text) return text;
     throw new Error("Empty model response");
   }
@@ -75,7 +81,7 @@ export async function generateAssistantReply(
       : "I'm here to help with soil, plants, and how you use Soil Mates.";
 
   return [
-    `${preview} (AI responses use a local fallback until you set OPENAI_API_KEY in your environment.)`,
+    `${preview} (AI responses use a local fallback until you set NVIDIA_API_KEY in your environment.)`,
     "",
     "To give you the best answer, could you share a bit more about what you're seeing or what you'd like to try? I'll keep suggestions conservative and avoid guessing.",
   ].join("\n");

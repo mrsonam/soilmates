@@ -1,5 +1,19 @@
 import type { GlobalAssistantContextJson, PlantAssistantContextJson } from "./types";
 
+function toneFromPersonality(
+  level: GlobalAssistantContextJson["aiPersonalityLevel"],
+): string {
+  switch (level ?? "balanced") {
+    case "factual":
+      return "Tone: concise, neutral, and factual. Prefer direct answers with minimal filler. Still be kind and never alarmist.";
+    case "warm":
+      return "Tone: warm, supportive, and encouraging. Use gentle language; still avoid alarmism and never claim certainty you do not have.";
+    case "balanced":
+    default:
+      return "Tone: warm, concise, reassuring. Never alarmist. Avoid clinical jargon unless the user asks.";
+  }
+}
+
 export function buildGlobalSystemPrompt(ctx: GlobalAssistantContextJson): string {
   const collectionLine =
     ctx.collectionName && ctx.collectionSlug
@@ -8,7 +22,7 @@ export function buildGlobalSystemPrompt(ctx: GlobalAssistantContextJson): string
 
   return [
     "You are Soil Mates Assistant — a calm, knowledgeable plant-care companion for the Soil Mates app.",
-    "Tone: warm, concise, reassuring. Never alarmist. Avoid clinical jargon unless the user asks.",
+    toneFromPersonality(ctx.aiPersonalityLevel),
     "Trust: Do not claim certainty. If you lack information, say so and ask a focused follow-up question.",
     "Do not claim to have seen photos or sensor data unless the user provides them in this conversation.",
     "Do not diagnose diseases as fact from vague symptoms; suggest safe next steps and when to seek expert help.",
@@ -22,7 +36,8 @@ export function buildPlantSystemPrompt(ctx: PlantAssistantContextJson): string {
   const p = ctx.plant;
   return [
     "You are Soil Mates Assistant — helping with a specific plant the user tracks in Soil Mates.",
-    "Tone: calm, thoughtful, grounded in the structured context below.",
+    toneFromPersonality(ctx.aiPersonalityLevel),
+    "Be thoughtful and grounded in the structured context below.",
     "The context is from the user's records. Use it as ground truth for this plant's nickname, area, health, care history, reminders, and recent activity.",
     "Still preserve uncertainty: if something is ambiguous (e.g. symptoms, pests), ask clarifying questions and suggest safer conservative actions.",
     "Never claim diagnosis as certainty from incomplete data. Prefer observation and monitoring steps.",
@@ -36,6 +51,7 @@ export function buildPlantSystemPrompt(ctx: PlantAssistantContextJson): string {
         activeReminders: ctx.activeReminders,
         recentImages: ctx.recentImages,
         recentActivity: ctx.recentActivity,
+        referenceSnapshot: ctx.referenceSnapshot,
         assembledAt: ctx.assembledAt,
       },
       null,

@@ -1,20 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Calendar, Droplets, Sprout, Sun } from "lucide-react";
-import { useCollectionPageActions } from "@/components/layout/collection-page-actions";
 import { CollectionStatsCards } from "@/components/collection-detail/collection-stats-cards";
-import { AreasSection } from "@/components/areas/areas-section";
-import { CreateAreaDialog } from "@/components/areas/create-area-dialog";
-import { EditAreaDialog } from "@/components/areas/edit-area-dialog";
 import { gradientClassForAreaId } from "@/components/areas/area-visuals";
 import type { AreaForCollectionDetail } from "@/lib/collections/collection-detail";
 import { InlineCoverEdit } from "@/components/collections/inline-cover-edit";
 import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
 import type { ActivityFeedItem } from "@/lib/activity/queries";
 import { CollectionActivityPreview } from "@/components/activity/collection-activity-preview";
+import { CollectionMembersPreview } from "@/components/members/collection-members-preview";
 
 type CollectionDetailViewProps = {
   collectionSlug: string;
@@ -43,24 +38,6 @@ export function CollectionDetailView({
   uploadsEnabled,
   activityPreview,
 }: CollectionDetailViewProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const tab = useMemo(() => {
-    const t = searchParams.get("tab");
-    if (t === "areas" || t === "members") return t;
-    return "overview" as const;
-  }, [searchParams]);
-  const pageActions = useCollectionPageActions();
-  const [createAreaOpen, setCreateAreaOpen] = useState(false);
-  const [editArea, setEditArea] = useState<AreaForCollectionDetail | null>(null);
-
-  const openCreateArea = useCallback(() => setCreateAreaOpen(true), []);
-
-  useEffect(() => {
-    pageActions?.registerCreateAreaHandler(openCreateArea);
-    return () => pageActions?.registerCreateAreaHandler(null);
-  }, [openCreateArea, pageActions]);
-
   const showLiveMetrics = plantCount > 0;
   const heroBadge = showLiveMetrics ? "Collection thriving" : "Getting started";
   const heroTitle = showLiveMetrics
@@ -81,8 +58,7 @@ export function CollectionDetailView({
 
       <CollectionSectionTabs collectionSlug={collectionSlug} />
 
-      {tab === "overview" && (
-        <div className="mt-6 space-y-8 sm:space-y-10">
+      <div className="mt-6 space-y-8 sm:space-y-10">
           <CollectionStatsCards
             areaCount={areaCount}
             plantCount={plantCount}
@@ -116,17 +92,12 @@ export function CollectionDetailView({
                     >
                       View watering schedule
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void router.push(
-                          `/collections/${collectionSlug}?tab=areas`,
-                        );
-                      }}
+                    <Link
+                      href={`/collections/${collectionSlug}/areas`}
                       className="inline-flex h-11 items-center justify-center rounded-full bg-surface-container-lowest px-6 text-sm font-medium text-on-surface ring-1 ring-outline-variant/20 transition hover:bg-surface-container-high"
                     >
                       Area reports
-                    </button>
+                    </Link>
                   </div>
                   <p className="mt-6 text-xs text-on-surface-variant/70">
                     {createdLabel}
@@ -267,6 +238,13 @@ export function CollectionDetailView({
             </div>
           </div>
 
+          <div className="mt-8">
+            <CollectionMembersPreview
+              collectionSlug={collectionSlug}
+              memberCount={memberCount}
+            />
+          </div>
+
           <section className="rounded-3xl bg-surface-container-lowest p-6 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-8">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <h3 className="font-display text-lg font-semibold text-on-surface">
@@ -292,16 +270,16 @@ export function CollectionDetailView({
               <h3 className="font-display text-lg font-semibold text-on-surface">
                 Area snapshots
               </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  void router.push(`/collections/${collectionSlug}?tab=areas`);
-                  openCreateArea();
-                }}
+              <Link
+                href={
+                  areas.length === 0
+                    ? `/collections/${collectionSlug}/areas?create=1`
+                    : `/collections/${collectionSlug}/areas`
+                }
                 className="text-sm font-medium text-primary transition hover:underline"
               >
                 {areas.length === 0 ? "Create an area" : "Manage areas"}
-              </button>
+              </Link>
             </div>
             {areas.length === 0 ? (
               <p className="mt-4 rounded-3xl bg-surface-container-low/50 px-6 py-10 text-center text-sm text-on-surface-variant ring-1 ring-outline-variant/10">
@@ -358,46 +336,6 @@ export function CollectionDetailView({
             </Link>
           </p>
         </div>
-      )}
-
-      {tab === "areas" && (
-        <AreasSection
-          collectionSlug={collectionSlug}
-          areas={areas}
-          onCreateClick={openCreateArea}
-          onEditArea={setEditArea}
-        />
-      )}
-
-      {tab === "members" && (
-        <div className="mt-6 space-y-4">
-          <p className="text-sm text-on-surface-variant">
-            <span className="font-medium text-on-surface">{memberCount}</span>{" "}
-            active {memberCount === 1 ? "member" : "members"}. Invites and
-            roles will appear here.
-          </p>
-          <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest/60 p-8 sm:p-10">
-            <p className="mx-auto max-w-lg text-center text-sm leading-relaxed text-on-surface-variant">
-              Everyone in a collection has equal access for now. You&apos;ll be
-              able to invite household members soon.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <CreateAreaDialog
-        open={createAreaOpen}
-        onClose={() => setCreateAreaOpen(false)}
-        collectionSlug={collectionSlug}
-        uploadsEnabled={uploadsEnabled}
-      />
-      <EditAreaDialog
-        open={editArea !== null}
-        onClose={() => setEditArea(null)}
-        collectionSlug={collectionSlug}
-        area={editArea}
-        uploadsEnabled={uploadsEnabled}
-      />
     </div>
   );
 }

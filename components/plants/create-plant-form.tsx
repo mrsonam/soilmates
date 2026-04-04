@@ -19,6 +19,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
+import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppSelect } from "@/components/ui/app-select";
 import { PlantReferencePicker } from "@/components/plants/plant-reference-picker";
 import { createPlantAction } from "@/app/(app)/collections/[collectionSlug]/plants/actions";
 import { createPlantFormInitialState } from "@/app/(app)/collections/[collectionSlug]/plants/plant-form-state";
@@ -45,6 +47,12 @@ export type CreatePlantFormProps =
       collectionName: string;
       areas: PlantCreateAreaOption[];
       uploadsEnabled: boolean;
+      /**
+       * When set (e.g. from `/collections/.../plants/new`), show collection + area
+       * dropdowns so the plant can be placed in another collection.
+       */
+      placementCollections?: { slug: string; name: string }[];
+      placementAreasByCollectionSlug?: Record<string, PlantCreateAreaOption[]>;
     }
   | {
       mode: "global";
@@ -95,17 +103,40 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
   const isGlobal = props.mode === "global";
   const uploadsEnabled = props.uploadsEnabled;
 
+  const showPlacementPicker =
+    (isGlobal && props.mode === "global") ||
+    (!isGlobal &&
+      Boolean(props.placementCollections?.length) &&
+      Boolean(props.placementAreasByCollectionSlug));
+
+  const placementCollectionOptions =
+    isGlobal && props.mode === "global"
+      ? props.collections
+      : !isGlobal && props.placementCollections
+        ? props.placementCollections
+        : [];
+
   const [selectedCollectionSlug, setSelectedCollectionSlug] = useState(() => {
-    if (props.mode === "global" && props.collections.length === 1) {
-      return props.collections[0].slug;
+    if (props.mode === "global") {
+      if (props.collections.length === 1) return props.collections[0].slug;
+      return "";
+    }
+    if (props.placementCollections?.length) {
+      return props.collectionSlug;
     }
     return "";
   });
 
-  const globalAreas =
+  const [selectedAreaId, setSelectedAreaId] = useState("");
+  const [acquisitionType, setAcquisitionType] = useState("purchased");
+  const [acquiredAt, setAcquiredAt] = useState("");
+
+  const resolvedAreas =
     isGlobal && props.mode === "global"
       ? props.areasByCollectionSlug[selectedCollectionSlug] ?? []
-      : [];
+      : !isGlobal && props.placementAreasByCollectionSlug
+        ? props.placementAreasByCollectionSlug[selectedCollectionSlug] ?? []
+        : [];
 
   const [state, formAction, pending] = useActionState(
     createPlantAction,
@@ -119,6 +150,22 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
       if (coverPreview) URL.revokeObjectURL(coverPreview);
     };
   }, [coverPreview]);
+
+  useEffect(() => {
+    if (props.mode === "global") {
+      const areas =
+        props.areasByCollectionSlug[selectedCollectionSlug] ?? [];
+      if (areas.length === 1) setSelectedAreaId(areas[0].id);
+      else setSelectedAreaId("");
+      return;
+    }
+    if (props.placementAreasByCollectionSlug) {
+      const areas =
+        props.placementAreasByCollectionSlug[selectedCollectionSlug] ?? [];
+      if (areas.length === 1) setSelectedAreaId(areas[0].id);
+      else setSelectedAreaId("");
+    }
+  }, [props, selectedCollectionSlug]);
 
   const plantsHref = isGlobal
     ? "/plants"
@@ -205,11 +252,11 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
 
       <form
         action={formAction}
-        method="post"
+        method="POST"
         encType="multipart/form-data"
         className="space-y-8 pb-24 sm:pb-8"
       >
-        {!isGlobal ? (
+        {!isGlobal && !showPlacementPicker ? (
           <input
             type="hidden"
             name="collectionSlug"
@@ -226,60 +273,53 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
           </div>
         ) : null}
 
-        {isGlobal && props.mode === "global" ? (
+        {showPlacementPicker ? (
           <FieldGroup
             icon={<MapPin className="size-5" strokeWidth={1.75} aria-hidden />}
             title="Placement"
-            description="Every plant belongs to one collection and area. If you only have one of each, they’re selected for you."
+            description="Every plant belongs to one collection and area. Pick where this plant should live."
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label htmlFor="global-collection-slug" className={labelClass}>
                   Collection <span className="text-primary">*</span>
                 </label>
-                <select
+                <AppSelect
                   id="global-collection-slug"
                   name="collectionSlug"
-                  required
+                  options={placementCollectionOptions.map((c) => ({
+                    value: c.slug,
+                    label: c.name,
+                  }))}
                   value={selectedCollectionSlug}
-                  onChange={(e) => setSelectedCollectionSlug(e.target.value)}
+                  onChange={setSelectedCollectionSlug}
+                  placeholder="Select a collection…"
+                  required
                   disabled={pending}
-                  className={inputClass}
-                >
-                  {props.collections.length > 1 ? (
-                    <option value="">Select a collection…</option>
-                  ) : null}
-                  {props.collections.map((c) => (
-                    <option key={c.slug} value={c.slug}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="global-area-id" className={labelClass}>
                   Area <span className="text-primary">*</span>
                 </label>
-                <select
+                <AppSelect
                   id="global-area-id"
                   name="areaId"
                   key={selectedCollectionSlug || "none"}
-                  required
-                  disabled={pending || !selectedCollectionSlug}
-                  defaultValue={
-                    globalAreas.length === 1 ? globalAreas[0].id : ""
+                  options={resolvedAreas.map((a) => ({
+                    value: a.id,
+                    label: a.name,
+                  }))}
+                  value={selectedAreaId}
+                  onChange={setSelectedAreaId}
+                  placeholder="Select an area…"
+                  required={resolvedAreas.length > 0}
+                  disabled={
+                    pending ||
+                    !selectedCollectionSlug ||
+                    resolvedAreas.length === 0
                   }
-                  className={inputClass}
-                >
-                  {globalAreas.length > 1 ? (
-                    <option value="">Select an area…</option>
-                  ) : null}
-                  {globalAreas.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
           </FieldGroup>
@@ -327,14 +367,19 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
             </div>
             <div className="sm:col-span-2">
               <p className={labelClass}>Reference behavior</p>
-              <select
+              <AppSelect
                 id="plant-reference-select"
+                options={[
+                  {
+                    value: "soon",
+                    label: "Searchable database — coming soon",
+                  },
+                ]}
+                value="soon"
+                onChange={() => {}}
                 disabled
-                className={`${inputClass} cursor-not-allowed opacity-80`}
                 aria-label="Species catalog (coming soon)"
-              >
-                <option>Searchable database — coming soon</option>
-              </select>
+              />
             </div>
           </div>
         </FieldGroup>
@@ -348,7 +393,7 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
               : "Where it lives in your space and how it’s doing today."
           }
         >
-          {!isGlobal ? (
+          {!isGlobal && !showPlacementPicker ? (
             <div>
               <span className={labelClass}>
                 Area <span className="text-primary">*</span>
@@ -455,30 +500,30 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
               <label htmlFor="acquisition-type" className={labelClass}>
                 How you got it
               </label>
-              <select
+              <AppSelect
                 id="acquisition-type"
                 name="acquisitionType"
+                options={ACQUISITION.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+                value={acquisitionType}
+                onChange={setAcquisitionType}
                 disabled={pending}
-                defaultValue="purchased"
-                className={inputClass}
-              >
-                {ACQUISITION.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label htmlFor="acquired-at" className={labelClass}>
                 Acquired or seeded date
               </label>
-              <input
+              <AppDatePicker
                 id="acquired-at"
                 name="acquiredAt"
-                type="date"
+                value={acquiredAt}
+                onChange={setAcquiredAt}
                 disabled={pending}
-                className={inputClass}
+                placeholder="Optional"
+                className="max-w-[min(100%,20rem)]"
               />
             </div>
             <div className="sm:col-span-2">

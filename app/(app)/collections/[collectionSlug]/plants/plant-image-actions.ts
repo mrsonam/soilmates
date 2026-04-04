@@ -21,7 +21,7 @@ import { ActivityEventTypes } from "@/lib/activity/event-types";
 import { getActorLabel } from "@/lib/activity/actor-label";
 
 export type PlantImageActionResult =
-  | { ok: true }
+  | { ok: true; uploadedImageIds?: string[] }
   | { ok: false; error: string };
 
 function revalidatePlantPaths(collectionSlug: string, plantSlug: string) {
@@ -110,6 +110,7 @@ export async function uploadPlantImagesAction(
   });
 
   let createdInBatch = 0;
+  const uploadedImageIds: string[] = [];
   for (const file of files) {
     if (file.size > MAX_PLANT_IMAGE_BYTES) {
       return {
@@ -195,6 +196,7 @@ export async function uploadPlantImagesAction(
     }
 
     createdInBatch += 1;
+    uploadedImageIds.push(imageId);
   }
 
   if (createdInBatch > 0) {
@@ -230,7 +232,11 @@ export async function uploadPlantImagesAction(
   }
 
   revalidatePlantPaths(collectionSlug, plantSlug);
-  return { ok: true };
+  return {
+    ok: true,
+    uploadedImageIds:
+      uploadedImageIds.length > 0 ? uploadedImageIds : undefined,
+  };
 }
 
 export async function setPlantCoverImageAction(input: {

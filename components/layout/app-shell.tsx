@@ -10,6 +10,10 @@ import { CollectionsCreateProvider } from "./collections-create-provider";
 import { CollectionHeaderProvider } from "./collection-header-context";
 import { CollectionPageActionsProvider } from "./collection-page-actions";
 import { AppRealtimeSync } from "./app-realtime-sync";
+import { OfflineBanner } from "@/components/offline/offline-banner";
+import { ConflictQueueStrip } from "@/components/offline/conflict-queue-strip";
+import { SyncQueueDebugPanel } from "@/components/offline/sync-queue-debug-panel";
+import { EnablePushPrompt } from "@/components/push/enable-push-prompt";
 
 type AppShellProps = {
   children: ReactNode;
@@ -21,9 +25,22 @@ type AppShellProps = {
     email: string;
     image?: string | null;
   };
+  pushPrompt?: {
+    eligible: boolean;
+    vapidConfigured: boolean;
+    pushEnabledInDb: boolean;
+  };
+  pendingInviteCount?: number;
 };
 
-export function AppShell({ children, collections, uploadsEnabled, user }: AppShellProps) {
+export function AppShell({
+  children,
+  collections,
+  uploadsEnabled,
+  user,
+  pushPrompt,
+  pendingInviteCount = 0,
+}: AppShellProps) {
   return (
     <CollectionsCreateProvider uploadsEnabled={uploadsEnabled}>
       <CollectionHeaderProvider>
@@ -31,16 +48,33 @@ export function AppShell({ children, collections, uploadsEnabled, user }: AppShe
         <div className="min-h-dvh bg-surface text-on-surface">
           <AppRealtimeSync />
           <div className="flex min-h-dvh items-stretch">
-            <Sidebar collections={collections} user={user} />
+            <Sidebar
+              collections={collections}
+              user={user}
+              pendingInviteCount={pendingInviteCount}
+            />
             <div className="flex min-w-0 flex-1 flex-col lg:min-h-dvh">
-              <AppHeader collections={collections} />
+              <AppHeader
+                collections={collections}
+                pendingInviteCount={pendingInviteCount}
+              />
+              <OfflineBanner />
               <div className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8">
+                <ConflictQueueStrip />
                 {children}
               </div>
+              <SyncQueueDebugPanel />
             </div>
           </div>
           <BottomNav />
           <AssistantFab />
+          {pushPrompt ? (
+            <EnablePushPrompt
+              eligible={pushPrompt.eligible}
+              vapidConfigured={pushPrompt.vapidConfigured}
+              pushEnabledInDb={pushPrompt.pushEnabledInDb}
+            />
+          ) : null}
         </div>
         </CollectionPageActionsProvider>
       </CollectionHeaderProvider>

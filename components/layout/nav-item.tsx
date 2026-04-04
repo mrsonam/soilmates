@@ -10,6 +10,8 @@ type NavItemProps = {
   active: boolean;
   className?: string;
   onNavigate?: () => void;
+  /** Small count badge (e.g. pending invites). */
+  badgeCount?: number;
 };
 
 export function NavItem({
@@ -19,7 +21,9 @@ export function NavItem({
   active,
   className = "",
   onNavigate,
+  badgeCount = 0,
 }: NavItemProps) {
+  const showBadge = badgeCount > 0;
   return (
     <Link
       href={href}
@@ -41,7 +45,17 @@ export function NavItem({
         strokeWidth={1.75}
         aria-hidden
       />
-      <span>{label}</span>
+      <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+        <span className="truncate">{label}</span>
+        {showBadge ? (
+          <span
+            className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[0.65rem] font-semibold tabular-nums text-primary"
+            aria-label={`${badgeCount} pending`}
+          >
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </span>
+        ) : null}
+      </span>
     </Link>
   );
 }

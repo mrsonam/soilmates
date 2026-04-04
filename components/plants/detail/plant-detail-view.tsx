@@ -20,6 +20,7 @@ import { PlantRemindersSection } from "@/components/reminders/plant-reminders-se
 import type { ActivityFeedItem } from "@/lib/activity/queries";
 import { PlantActivityPreview } from "@/components/activity/plant-activity-preview";
 import { PlantAssistantPanel } from "@/components/assistant/plant-assistant-panel";
+import type { DiagnosisHistoryItem } from "@/lib/diagnosis/queries";
 
 type PlantDetailViewProps = {
   plant: PlantDetailModel;
@@ -37,7 +38,10 @@ type PlantDetailViewProps = {
     role: "user" | "assistant" | "system" | "tool";
     content: string;
     createdAt: string;
+    diagnosisImageThumbs?: Array<{ id: string; signedUrl: string | null }>;
   }>;
+  diagnosisActive: DiagnosisHistoryItem | null;
+  diagnosisHistory: DiagnosisHistoryItem[];
 };
 
 export function PlantDetailView({
@@ -52,6 +56,8 @@ export function PlantDetailView({
   plantActivity,
   assistantThreadId,
   assistantMessages,
+  diagnosisActive,
+  diagnosisHistory,
 }: PlantDetailViewProps) {
   const [tab, setTab] = useState<PlantDetailTabId>(initialTab ?? "overview");
 
@@ -59,7 +65,12 @@ export function PlantDetailView({
     <div className="space-y-8 lg:space-y-10">
       <CollectionSectionTabs collectionSlug={collectionSlug} />
 
-      <PlantHeroSummary plant={plant} />
+      <PlantHeroSummary
+        plant={plant}
+        activeDiagnosisSummary={diagnosisActive?.summary ?? null}
+        collectionSlug={collectionSlug}
+        plantSlug={plant.slug}
+      />
 
       <QuickCareActions
         collectionSlug={collectionSlug}
@@ -108,6 +119,7 @@ export function PlantDetailView({
               plantNickname={plant.nickname}
               images={galleryImages}
               uploadsEnabled={uploadsEnabled}
+              diagnosisHref={`/collections/${collectionSlug}/plants/${plant.slug}?tab=assistant#plant-check-in`}
             />
           )}
           {tab === "reminders" && (
@@ -117,18 +129,18 @@ export function PlantDetailView({
               reminders={reminders}
             />
           )}
-          {tab === "diagnosis" && (
-            <PlantSectionPlaceholder
-              title="Diagnosis"
-              description="Spot something off? Future versions will help you log symptoms and track recovery."
-            />
-          )}
           {tab === "assistant" &&
             (assistantThreadId ? (
               <PlantAssistantPanel
                 threadId={assistantThreadId}
                 plantNickname={plant.nickname}
                 initialMessages={assistantMessages}
+                collectionSlug={collectionSlug}
+                plantSlug={plant.slug}
+                galleryImages={galleryImages}
+                uploadsEnabled={uploadsEnabled}
+                diagnosisActive={diagnosisActive}
+                diagnosisHistory={diagnosisHistory}
               />
             ) : (
               <PlantSectionPlaceholder

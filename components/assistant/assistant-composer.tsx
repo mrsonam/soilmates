@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState, useTransition, type FormEvent } from "react";
 import { Send } from "lucide-react";
 
@@ -7,12 +8,15 @@ type AssistantComposerProps = {
   onSend: (text: string) => Promise<void>;
   disabled?: boolean;
   placeholder?: string;
+  /** Shown inside the chat bar before the textarea (e.g. photo review toggle) */
+  leadingSlot?: ReactNode;
 };
 
 export function AssistantComposer({
   onSend,
   disabled,
   placeholder = "Ask anything…",
+  leadingSlot,
 }: AssistantComposerProps) {
   const [text, setText] = useState("");
   const [pending, startTransition] = useTransition();
@@ -35,6 +39,9 @@ export function AssistantComposer({
       <label className="sr-only" htmlFor="assistant-composer-input">
         Message
       </label>
+      {leadingSlot ? (
+        <div className="flex shrink-0 items-end pb-1 pl-1">{leadingSlot}</div>
+      ) : null}
       <textarea
         id="assistant-composer-input"
         rows={1}

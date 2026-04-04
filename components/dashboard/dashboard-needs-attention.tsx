@@ -19,6 +19,8 @@ import {
 import type { DueCareItem } from "@/lib/reminders/queries";
 import type { ReminderType } from "@prisma/client";
 import { completeReminderAction } from "@/app/(app)/collections/[collectionSlug]/plants/reminder-actions";
+import { SyncEntityType, SyncOperationType } from "@/lib/sync/operation-types";
+import { runOrEnqueueMutation } from "@/lib/sync/run-or-enqueue";
 import { DueDateLabel } from "@/components/reminders/due-date-label";
 
 function iconForReminderType(t: ReminderType): LucideIcon {
@@ -114,10 +116,21 @@ function CompactCard({ item }: { item: DueCareItem }) {
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                const r = await completeReminderAction({
-                  collectionSlug: item.collection.slug,
-                  plantSlug: item.plant.slug,
-                  reminderId: item.reminderId,
+                const r = await runOrEnqueueMutation({
+                  operationType: SyncOperationType.REMINDER_COMPLETE,
+                  entityType: SyncEntityType.REMINDER,
+                  entityId: item.reminderId,
+                  payload: {
+                    collectionSlug: item.collection.slug,
+                    plantSlug: item.plant.slug,
+                    reminderId: item.reminderId,
+                  },
+                  execute: () =>
+                    completeReminderAction({
+                      collectionSlug: item.collection.slug,
+                      plantSlug: item.plant.slug,
+                      reminderId: item.reminderId,
+                    }),
                 });
                 if (r.ok) router.refresh();
               })
@@ -180,10 +193,21 @@ function WideCard({ item }: { item: DueCareItem }) {
           disabled={pending}
           onClick={() =>
             startTransition(async () => {
-              const r = await completeReminderAction({
-                collectionSlug: item.collection.slug,
-                plantSlug: item.plant.slug,
-                reminderId: item.reminderId,
+              const r = await runOrEnqueueMutation({
+                operationType: SyncOperationType.REMINDER_COMPLETE,
+                entityType: SyncEntityType.REMINDER,
+                entityId: item.reminderId,
+                payload: {
+                  collectionSlug: item.collection.slug,
+                  plantSlug: item.plant.slug,
+                  reminderId: item.reminderId,
+                },
+                execute: () =>
+                  completeReminderAction({
+                    collectionSlug: item.collection.slug,
+                    plantSlug: item.plant.slug,
+                    reminderId: item.reminderId,
+                  }),
               });
               if (r.ok) router.refresh();
             })

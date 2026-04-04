@@ -13,6 +13,12 @@ export const ActivityEventTypes = {
   coverImageChanged: "cover_image_changed",
   collectionCoverChanged: "collection_cover_changed",
   areaCoverChanged: "area_cover_changed",
+  plantDiagnosisCreated: "plant_diagnosis_created",
+  inviteCreated: "invite_created",
+  inviteAccepted: "invite_accepted",
+  inviteDeclined: "invite_declined",
+  inviteRevoked: "invite_revoked",
+  memberRemoved: "member_removed",
 } as const;
 
 export type ActivityEventTypeId =

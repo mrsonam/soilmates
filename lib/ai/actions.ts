@@ -124,7 +124,7 @@ export async function sendAssistantMessageAction(input: {
       "",
       `Details: ${message.slice(0, 280)}`,
       "",
-      "Please try again in a moment. If it keeps happening, check OPENAI_API_KEY / network access from your server.",
+      "Please try again in a moment. If it keeps happening, check NVIDIA_API_KEY / network access from your server.",
     ].join("\n");
     contextSnapshot = null;
   }

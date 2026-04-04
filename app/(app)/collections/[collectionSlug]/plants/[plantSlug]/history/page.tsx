@@ -9,6 +9,7 @@ import { getPlantActivityForMember } from "@/lib/activity/queries";
 import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlantDetailView } from "@/components/plants/detail/plant-detail-view";
+import { getPlantDiagnosisHistoryForMember } from "@/lib/diagnosis/queries";
 
 type Props = {
   params: Promise<{ collectionSlug: string; plantSlug: string }>;
@@ -24,17 +25,33 @@ export default async function PlantCareHistoryPage({ params }: Props) {
   }
 
   const { collectionSlug, plantSlug } = await params;
-  const [plant, careLogs, galleryImages, remindersPayload, plantActivity] =
-    await Promise.all([
+  const [
+    plant,
+    careLogs,
+    galleryImages,
+    remindersPayload,
+    plantActivity,
+    diagnosisPayload,
+  ] = await Promise.all([
     getPlantDetailBySlugs(session.user.id, collectionSlug, plantSlug),
     getPlantCareLogs(session.user.id, collectionSlug, plantSlug),
     getPlantImagesForGallery(session.user.id, collectionSlug, plantSlug),
     getPlantRemindersForMember(session.user.id, collectionSlug, plantSlug),
     getPlantActivityForMember(session.user.id, collectionSlug, plantSlug, 12),
+    getPlantDiagnosisHistoryForMember(
+      session.user.id,
+      collectionSlug,
+      plantSlug,
+    ),
   ]);
   const reminders = remindersPayload ?? [];
 
-  if (!plant || careLogs === null || galleryImages === null) {
+  if (
+    !plant ||
+    careLogs === null ||
+    galleryImages === null ||
+    diagnosisPayload === null
+  ) {
     notFound();
   }
 
@@ -60,6 +77,8 @@ export default async function PlantCareHistoryPage({ params }: Props) {
         plantActivity={plantActivity}
         assistantThreadId={null}
         assistantMessages={[]}
+        diagnosisActive={diagnosisPayload.active}
+        diagnosisHistory={diagnosisPayload.history}
       />
     </PageContainer>
   );

@@ -15,6 +15,7 @@ import { DashboardSnapshot } from "@/components/dashboard/dashboard-snapshot";
 import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity";
 import { DashboardFavorites } from "@/components/dashboard/dashboard-favorites";
 import { DashboardAssistantNudge } from "@/components/dashboard/dashboard-assistant-nudge";
+import { getPendingInviteCountForUser } from "@/lib/collections/invites-queries";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -27,14 +28,15 @@ export default async function DashboardPage() {
     session.user.email?.split("@")[0] ??
     "Gardener";
 
-  const [memberships, dueCare, snapshot, recentActivity, favorites] =
+  const [memberships, dueCare, snapshot, recentActivity, favorites, inviteCount] =
     await Promise.all([
-    getActiveMembershipsForUser(session.user.id),
-    getDashboardDueCare(session.user.id),
-    getDashboardSnapshot(session.user.id),
-    getDashboardRecentActivity(session.user.id),
-    getDashboardFavoritePlants(session.user.id),
-  ]);
+      getActiveMembershipsForUser(session.user.id),
+      getDashboardDueCare(session.user.id),
+      getDashboardSnapshot(session.user.id),
+      getDashboardRecentActivity(session.user.id),
+      getDashboardFavoritePlants(session.user.id),
+      getPendingInviteCountForUser(session.user.email),
+    ]);
 
   const attentionCount = dueCare.filter(
     (i) => i.status === "due" || i.status === "overdue",
@@ -55,6 +57,23 @@ export default async function DashboardPage() {
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-on-surface-variant">
             {subline}
           </p>
+
+          {inviteCount > 0 ? (
+            <Link
+              href="/invitations"
+              className="mt-6 flex max-w-lg items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary-fixed/30 px-5 py-4 text-left transition hover:bg-primary-fixed/40"
+            >
+              <span className="text-sm text-on-surface">
+                You have{" "}
+                <span className="font-semibold">
+                  {inviteCount}{" "}
+                  {inviteCount === 1 ? "collection invite" : "collection invites"}
+                </span>{" "}
+                waiting
+              </span>
+              <span className="text-sm font-medium text-primary">Review</span>
+            </Link>
+          ) : null}
 
           <section className="mt-10">
             <h2 className="font-display text-xl font-semibold text-on-surface">

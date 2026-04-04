@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { Leaf } from "lucide-react";
+import { Leaf, Settings } from "lucide-react";
 import { sidebarNav, isNavActive } from "@/lib/layout/nav-config";
 import { logoutAction } from "@/app/(app)/logout-action";
 import { NavItem } from "./nav-item";
@@ -17,9 +17,14 @@ type SidebarProps = {
     email: string;
     image?: string | null;
   };
+  pendingInviteCount?: number;
 };
 
-export function Sidebar({ collections, user }: SidebarProps) {
+export function Sidebar({
+  collections,
+  user,
+  pendingInviteCount = 0,
+}: SidebarProps) {
   const pathname = usePathname();
   const display = user.name?.trim() || user.email.split("@")[0] || "Grower";
   const initial = display.slice(0, 1).toUpperCase();
@@ -58,6 +63,9 @@ export function Sidebar({ collections, user }: SidebarProps) {
                 label={item.label}
                 icon={item.icon}
                 active={isNavActive(pathname, item.href)}
+                badgeCount={
+                  item.href === "/invitations" ? pendingInviteCount : undefined
+                }
               />
             ))}
           </nav>
@@ -91,7 +99,14 @@ export function Sidebar({ collections, user }: SidebarProps) {
                 </p>
               </div>
             </div>
-            <form action={logoutAction} className="mt-3">
+            <Link
+              href="/settings"
+              className="mt-3 flex items-center gap-2 rounded-2xl px-2 py-2 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface"
+            >
+              <Settings className="size-4 shrink-0" strokeWidth={1.75} />
+              Settings
+            </Link>
+            <form action={logoutAction} className="mt-2">
               <LogoutButton />
             </form>
           </div>

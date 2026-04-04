@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   MapPin,
@@ -31,7 +31,7 @@ const TABS: {
     id: "areas",
     label: "Areas",
     Icon: MapPin,
-    href: (slug) => `/collections/${slug}?tab=areas`,
+    href: (slug) => `/collections/${slug}/areas`,
   },
   {
     id: "plants",
@@ -43,17 +43,15 @@ const TABS: {
     id: "members",
     label: "Members",
     Icon: Users,
-    href: (slug) => `/collections/${slug}?tab=members`,
+    href: (slug) => `/collections/${slug}/members`,
   },
 ];
 
 export function activeCollectionSectionTab(
   collectionSlug: string,
   pathname: string,
-  searchParams: URLSearchParams | null,
 ): CollectionSectionTabId {
   const base = `/collections/${collectionSlug}`;
-  const tab = searchParams?.get("tab") ?? null;
 
   if (pathname.startsWith(`${base}/plants`)) {
     return "plants";
@@ -61,9 +59,10 @@ export function activeCollectionSectionTab(
   if (pathname.startsWith(`${base}/areas`)) {
     return "areas";
   }
+  if (pathname.startsWith(`${base}/members`)) {
+    return "members";
+  }
   if (pathname === base) {
-    if (tab === "members") return "members";
-    if (tab === "areas") return "areas";
     return "overview";
   }
   return "overview";
@@ -79,12 +78,7 @@ export function CollectionSectionTabs({
   className = "",
 }: CollectionSectionTabsProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const active = activeCollectionSectionTab(
-    collectionSlug,
-    pathname,
-    searchParams,
-  );
+  const active = activeCollectionSectionTab(collectionSlug, pathname);
 
   return (
     <div

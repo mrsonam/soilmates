@@ -9,15 +9,20 @@ import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 
 type Props = {
   params: Promise<{ collectionSlug: string }>;
+  searchParams: Promise<{ tab?: string }>;
 };
 
-export default async function CollectionHomePage({ params }: Props) {
+export default async function CollectionHomePage({ params, searchParams }: Props) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
 
   const { collectionSlug } = await params;
+  const q = await searchParams;
+  if (q.tab === "areas") {
+    redirect(`/collections/${collectionSlug}/areas`);
+  }
   const [detail, activityPreview] = await Promise.all([
     getCollectionDetailForActiveMember(session.user.id, collectionSlug),
     getCollectionActivityForMember(session.user.id, collectionSlug, 8),

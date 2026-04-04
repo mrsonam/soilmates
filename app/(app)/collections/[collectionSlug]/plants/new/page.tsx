@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { getPlantCreateDependencies } from "@/lib/plants/queries";
+import {
+  getGlobalPlantCreateDependencies,
+  getPlantCreateDependencies,
+} from "@/lib/plants/queries";
 import { isSupabaseStorageConfigured } from "@/lib/supabase/admin";
 import { PageContainer } from "@/components/layout/page-container";
 import { CollectionSectionTabs } from "@/components/collections/collection-section-tabs";
@@ -18,10 +21,10 @@ export default async function NewPlantPage({ params }: Props) {
   }
 
   const { collectionSlug } = await params;
-  const deps = await getPlantCreateDependencies(
-    session.user.id,
-    collectionSlug,
-  );
+  const [deps, globalPlacement] = await Promise.all([
+    getPlantCreateDependencies(session.user.id, collectionSlug),
+    getGlobalPlantCreateDependencies(session.user.id),
+  ]);
 
   if (!deps) {
     notFound();
@@ -52,6 +55,16 @@ export default async function NewPlantPage({ params }: Props) {
     );
   }
 
+  const placement =
+    globalPlacement &&
+    globalPlacement.collections.length > 0 &&
+    globalPlacement.areasByCollectionSlug
+      ? {
+          placementCollections: globalPlacement.collections,
+          placementAreasByCollectionSlug: globalPlacement.areasByCollectionSlug,
+        }
+      : null;
+
   return (
     <PageContainer>
       <CreatePlantForm
@@ -59,6 +72,7 @@ export default async function NewPlantPage({ params }: Props) {
         collectionName={deps.collection.name}
         areas={deps.areas}
         uploadsEnabled={isSupabaseStorageConfigured()}
+        {...placement}
       />
     </PageContainer>
   );

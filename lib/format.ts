@@ -7,6 +7,22 @@ export function formatShortDate(d: Date | string): string {
   }).format(date);
 }
 
+/**
+ * Fixed `en` + explicit hour12 so SSR and browser produce identical strings
+ * (avoids hydration mismatch from `toLocaleString(undefined, …)`).
+ */
+export function formatMediumDateTime(iso: string): string {
+  const date = new Date(iso);
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+}
+
 /** Care log list: “Today at 8:45 AM” or “Mar 28, 2024”. */
 export function formatCareLogWhen(iso: string): string {
   const date = new Date(iso);
@@ -46,4 +62,17 @@ export function formatCareLogWhen(iso: string): string {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+}
+
+/** Display length from a value stored in centimeters (user preference). */
+export function formatLengthFromCm(
+  valueCm: number,
+  unit: "cm" | "in",
+  fractionDigits = 1,
+): string {
+  if (unit === "cm") {
+    return `${valueCm.toFixed(fractionDigits)} cm`;
+  }
+  const inches = valueCm / 2.54;
+  return `${inches.toFixed(fractionDigits)} in`;
 }

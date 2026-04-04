@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { AppDateTimePicker } from "@/components/ui/app-datetime-picker";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
 import {
   createDetailedCareLogAction,
@@ -241,14 +242,14 @@ export function CareLogFormDialog({
             >
               When
             </label>
-            <input
-              id="care-log-when"
-              type="datetime-local"
-              required
-              value={actionAtLocal}
-              onChange={(e) => setActionAtLocal(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
-            />
+            <div className="mt-2">
+              <AppDateTimePicker
+                id="care-log-when"
+                value={actionAtLocal}
+                onChange={setActionAtLocal}
+                disabled={pending}
+              />
+            </div>
           </div>
 
           {showWater ? (

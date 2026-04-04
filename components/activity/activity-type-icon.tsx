@@ -7,6 +7,7 @@ import {
   Repeat,
   Sparkles,
   Sprout,
+  Users,
 } from "lucide-react";
 import { ActivityEventTypes } from "@/lib/activity/event-types";
 
@@ -31,6 +32,12 @@ function iconForEventType(eventType: string): LucideIcon {
     case ActivityEventTypes.collectionCoverChanged:
     case ActivityEventTypes.areaCoverChanged:
       return ImagePlus;
+    case ActivityEventTypes.inviteCreated:
+    case ActivityEventTypes.inviteAccepted:
+    case ActivityEventTypes.inviteDeclined:
+    case ActivityEventTypes.inviteRevoked:
+    case ActivityEventTypes.memberRemoved:
+      return Users;
     default:
       return Sparkles;
   }

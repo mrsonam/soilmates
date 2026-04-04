@@ -7,6 +7,11 @@ export async function buildGlobalAssistantContext(
   userId: string,
   options?: { collectionSlug?: string | null },
 ): Promise<GlobalAssistantContextJson> {
+  const profile = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { aiPersonalityLevel: true },
+  });
+
   let collectionName: string | null = null;
   let collectionSlug: string | null = null;
 
@@ -42,6 +47,13 @@ export async function buildPlantAssistantContext(
 ): Promise<PlantAssistantContextJson | null> {
   const plant = await getPlantDetailBySlugs(userId, collectionSlug, plantSlug);
   if (!plant) return null;
+
+  const profile = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { aiPersonalityLevel: true },
+  });
+
+  const referenceSnapshot = plant.referenceSnapshot;
 
   const [careLogs, reminders, images, activity] = await Promise.all([
     prisma.careLog.findMany({
@@ -124,6 +136,8 @@ export async function buildPlantAssistantContext(
       summary: a.summary,
       createdAt: a.createdAt.toISOString(),
     })),
+    referenceSnapshot,
+    aiPersonalityLevel: profile?.aiPersonalityLevel ?? "balanced",
     assembledAt: new Date().toISOString(),
   };
 }

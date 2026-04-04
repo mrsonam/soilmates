@@ -8,6 +8,8 @@ export type GlobalAssistantContextJson = {
   /** Optional collection the user is focused on (not auto-inferred; explicit only). */
   collectionSlug?: string | null;
   collectionName?: string | null;
+  /** From user settings; shapes assistant tone. */
+  aiPersonalityLevel?: "factual" | "balanced" | "warm";
   assembledAt: string;
 };
 
@@ -53,6 +55,9 @@ export type PlantAssistantContextJson = {
     summary: string;
     createdAt: string;
   }>;
+  /** Snapshot of selected reference data at assembly time (if any). */
+  referenceSnapshot: unknown;
+  aiPersonalityLevel?: "factual" | "balanced" | "warm";
   assembledAt: string;
 };
 

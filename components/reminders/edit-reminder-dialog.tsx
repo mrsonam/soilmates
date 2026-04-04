@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { AppSelect } from "@/components/ui/app-select";
 import { updateReminderAction } from "@/app/(app)/collections/[collectionSlug]/plants/reminder-actions";
 import type { ReminderListItem } from "@/lib/reminders/queries";
 import { INTERVAL_UNITS, PREFERRED_WINDOWS } from "@/lib/reminders/constants";
@@ -28,12 +29,16 @@ export function EditReminderDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [intervalUnit, setIntervalUnit] = useState("days");
+  const [preferredWindow, setPreferredWindow] = useState("flexible");
 
   useEffect(() => {
     const el = dialogRef.current;
     if (!el) return;
     if (open && item) {
       setError(null);
+      setIntervalUnit(item.recurrenceRule.intervalUnit);
+      setPreferredWindow(item.preferredWindow ?? "flexible");
       el.showModal();
     } else {
       el.close();
@@ -162,36 +167,32 @@ export function EditReminderDialog({
                 <label className="mb-2 block text-sm font-medium text-on-surface">
                   Unit
                 </label>
-                <select
+                <AppSelect
                   name="intervalUnit"
-                  defaultValue={item.recurrenceRule.intervalUnit}
+                  options={INTERVAL_UNITS.map((u) => ({
+                    value: u.value,
+                    label: u.label,
+                  }))}
+                  value={intervalUnit}
+                  onChange={setIntervalUnit}
                   disabled={pending}
-                  className="w-full rounded-2xl border border-transparent bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface outline-none focus-visible:border-primary/25 focus-visible:ring-2 focus-visible:ring-primary/20"
-                >
-                  {INTERVAL_UNITS.map((u) => (
-                    <option key={u.value} value={u.value}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-on-surface">
                 Preferred window
               </label>
-              <select
+              <AppSelect
                 name="preferredWindow"
-                defaultValue={item.preferredWindow ?? "flexible"}
+                options={PREFERRED_WINDOWS.map((w) => ({
+                  value: w.value,
+                  label: w.label,
+                }))}
+                value={preferredWindow}
+                onChange={setPreferredWindow}
                 disabled={pending}
-                className="w-full rounded-2xl border border-transparent bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface outline-none focus-visible:border-primary/25 focus-visible:ring-2 focus-visible:ring-primary/20"
-              >
-                {PREFERRED_WINDOWS.map((w) => (
-                  <option key={w.value} value={w.value}>
-                    {w.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>

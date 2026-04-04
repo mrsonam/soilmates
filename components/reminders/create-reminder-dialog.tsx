@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { AppSelect } from "@/components/ui/app-select";
 import { createReminderAction } from "@/app/(app)/collections/[collectionSlug]/plants/reminder-actions";
 import { defaultTitleForReminderType } from "@/lib/reminders/labels";
 import {
@@ -32,6 +33,8 @@ export function CreateReminderDialog({
   const [pending, startTransition] = useTransition();
   const [reminderType, setReminderType] = useState<ReminderType>("watering");
   const [title, setTitle] = useState(defaultTitleForReminderType("watering"));
+  const [intervalUnit, setIntervalUnit] = useState("days");
+  const [preferredWindow, setPreferredWindow] = useState("morning");
 
   useEffect(() => {
     const el = dialogRef.current;
@@ -41,6 +44,8 @@ export function CreateReminderDialog({
       setError(null);
       setReminderType("watering");
       setTitle(defaultTitleForReminderType("watering"));
+      setIntervalUnit("days");
+      setPreferredWindow("morning");
       el.showModal();
     } else {
       el.close();
@@ -127,19 +132,16 @@ export function CreateReminderDialog({
               <label className="mb-2 block text-sm font-medium text-on-surface">
                 Type
               </label>
-              <select
+              <AppSelect
                 name="reminderType"
+                options={REMINDER_TYPES.map((t) => ({
+                  value: t,
+                  label: defaultTitleForReminderType(t),
+                }))}
                 value={reminderType}
-                onChange={(e) => onTypeChange(e.target.value as ReminderType)}
+                onChange={(v) => onTypeChange(v as ReminderType)}
                 disabled={pending}
-                className="w-full rounded-2xl border border-transparent bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface outline-none focus-visible:border-primary/25 focus-visible:ring-2 focus-visible:ring-primary/20"
-              >
-                {REMINDER_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {defaultTitleForReminderType(t)}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-on-surface">
@@ -189,36 +191,32 @@ export function CreateReminderDialog({
                 <label className="mb-2 block text-sm font-medium text-on-surface">
                   Unit
                 </label>
-                <select
+                <AppSelect
                   name="intervalUnit"
-                  defaultValue="days"
+                  options={INTERVAL_UNITS.map((u) => ({
+                    value: u.value,
+                    label: u.label,
+                  }))}
+                  value={intervalUnit}
+                  onChange={setIntervalUnit}
                   disabled={pending}
-                  className="w-full rounded-2xl border border-transparent bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface outline-none focus-visible:border-primary/25 focus-visible:ring-2 focus-visible:ring-primary/20"
-                >
-                  {INTERVAL_UNITS.map((u) => (
-                    <option key={u.value} value={u.value}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-on-surface">
                 Preferred window
               </label>
-              <select
+              <AppSelect
                 name="preferredWindow"
-                defaultValue="morning"
+                options={PREFERRED_WINDOWS.map((w) => ({
+                  value: w.value,
+                  label: w.label,
+                }))}
+                value={preferredWindow}
+                onChange={setPreferredWindow}
                 disabled={pending}
-                className="w-full rounded-2xl border border-transparent bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface outline-none focus-visible:border-primary/25 focus-visible:ring-2 focus-visible:ring-primary/20"
-              >
-                {PREFERRED_WINDOWS.map((w) => (
-                  <option key={w.value} value={w.value}>
-                    {w.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>

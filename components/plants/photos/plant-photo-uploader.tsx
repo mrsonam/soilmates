@@ -3,7 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Camera } from "lucide-react";
+import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { uploadPlantImagesAction } from "@/app/(app)/collections/[collectionSlug]/plants/plant-image-actions";
+import { readNavigatorOnline } from "@/lib/sync/network";
+import { enqueueImageUpload } from "@/lib/sync/queue";
+import { refreshPendingCounts } from "@/lib/sync/replay";
+import { useSyncStore } from "@/lib/stores/sync-store";
 
 type PlantPhotoUploaderProps = {
   collectionSlug: string;
@@ -23,6 +28,7 @@ export function PlantPhotoUploader({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [mode, setMode] = useState<"progress" | "cover">("progress");
+  const [capturedAt, setCapturedAt] = useState("");
 
   if (!uploadsEnabled) {
     return (
@@ -56,6 +62,37 @@ export function PlantPhotoUploader({
     formData.set("collectionSlug", collectionSlug);
     formData.set("plantSlug", plantSlug);
     formData.set("mode", mode);
+    const capturedAt = String(formData.get("capturedAt") ?? "").trim() || null;
+
+    if (!readNavigatorOnline()) {
+      setPending(true);
+      try {
+        for (const f of files) {
+          if (f && f.size > 0) {
+            await enqueueImageUpload({
+              collectionSlug,
+              plantSlug,
+              mode,
+              file: f,
+              capturedAt,
+            });
+          }
+        }
+        const counts = await refreshPendingCounts();
+        useSyncStore.getState().setCounts({
+          pendingMutations: counts.mutations,
+          pendingImages: counts.images,
+          conflictCount: counts.conflicts,
+        });
+        form.reset();
+        setCapturedAt("");
+        router.refresh();
+      } finally {
+        setPending(false);
+      }
+      return;
+    }
+
     setPending(true);
     try {
       const result = await uploadPlantImagesAction(formData);
@@ -64,6 +101,7 @@ export function PlantPhotoUploader({
         return;
       }
       form.reset();
+      setCapturedAt("");
       router.refresh();
     } finally {
       setPending(false);
@@ -115,11 +153,14 @@ export function PlantPhotoUploader({
         >
           Captured on (optional)
         </label>
-        <input
+        <AppDatePicker
           id={`captured-${plantSlug}`}
-          type="date"
           name="capturedAt"
-          className="w-full max-w-[12rem] rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-3 py-2 text-sm text-on-surface"
+          value={capturedAt}
+          onChange={setCapturedAt}
+          disabled={pending}
+          placeholder="Optional"
+          className="max-w-[12rem]"
         />
       </div>
 
@@ -148,26 +189,48 @@ export function PlantPhotoUploader({
                 const input = ev.currentTarget;
                 const file = input.files?.[0];
                 if (!file) return;
-                const fd = new FormData();
-                fd.append("files", file);
-                fd.set("collectionSlug", collectionSlug);
-                fd.set("plantSlug", plantSlug);
-                fd.set("mode", mode);
                 const cap = document.getElementById(
                   `captured-${plantSlug}`,
                 ) as HTMLInputElement | null;
-                if (cap?.value) fd.set("capturedAt", cap.value);
+                const capturedAt = cap?.value?.trim() || null;
                 setPending(true);
                 setError(null);
-                void uploadPlantImagesAction(fd).then((result) => {
-                  setPending(false);
-                  input.value = "";
-                  if (!result.ok) {
-                    setError(result.error);
-                    return;
+                void (async () => {
+                  try {
+                    if (!readNavigatorOnline()) {
+                      await enqueueImageUpload({
+                        collectionSlug,
+                        plantSlug,
+                        mode,
+                        file,
+                        capturedAt,
+                      });
+                      const counts = await refreshPendingCounts();
+                      useSyncStore.getState().setCounts({
+                        pendingMutations: counts.mutations,
+                        pendingImages: counts.images,
+                        conflictCount: counts.conflicts,
+                      });
+                      router.refresh();
+                      return;
+                    }
+                    const fd = new FormData();
+                    fd.append("files", file);
+                    fd.set("collectionSlug", collectionSlug);
+                    fd.set("plantSlug", plantSlug);
+                    fd.set("mode", mode);
+                    if (capturedAt) fd.set("capturedAt", capturedAt);
+                    const result = await uploadPlantImagesAction(fd);
+                    if (!result.ok) {
+                      setError(result.error);
+                      return;
+                    }
+                    router.refresh();
+                  } finally {
+                    setPending(false);
+                    input.value = "";
                   }
-                  router.refresh();
-                });
+                })();
               }}
             />
           </label>

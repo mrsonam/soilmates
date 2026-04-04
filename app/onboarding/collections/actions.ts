@@ -164,6 +164,9 @@ export async function joinCollectionByInviteAction(
     if (invite.status === CollectionInviteStatus.accepted) {
       return { error: "This invite has already been used." };
     }
+    if (invite.status === ("declined" as CollectionInviteStatus)) {
+      return { error: "This invite is no longer active." };
+    }
     if (invite.status === CollectionInviteStatus.expired) {
       return { error: "This invite has expired." };
     }

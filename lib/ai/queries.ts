@@ -135,6 +135,7 @@ export async function getThreadMessages(threadId: string) {
       role: true,
       content: true,
       createdAt: true,
+      relatedDiagnosisId: true,
     },
   });
 }

@@ -99,3 +99,28 @@ export async function deletePlantImageObject(
   const supabase = getSupabaseAdmin();
   await supabase.storage.from(PLANT_IMAGES_BUCKET).remove([storagePath]);
 }
+
+/** Server-side download for AI vision (validated paths only). */
+export async function downloadPlantImageFromStorage(
+  storagePath: string,
+): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
+  if (!isSupabaseStorageConfigured()) return null;
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.storage
+      .from(PLANT_IMAGES_BUCKET)
+      .download(storagePath);
+    if (error || !data) {
+      console.error("[storage] download failed", error?.message ?? error);
+      return null;
+    }
+    const buffer = await data.arrayBuffer();
+    const t = data.type;
+    const contentType =
+      t && t.startsWith("image/") ? t : "image/jpeg";
+    return { buffer, contentType };
+  } catch (e) {
+    console.error("[storage] download exception", e);
+    return null;
+  }
+}

@@ -19,6 +19,7 @@ enum CollectionMemberStatus {
 enum CollectionInviteStatus {
   pending
   accepted
+  declined
   expired
   revoked
 }
@@ -80,60 +81,123 @@ model Profile {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  collectionsCreated      Collection[]           @relation("CollectionCreatedBy")
-  collectionMemberships   CollectionMember[]     @relation("MemberUser")
-  collectionInvitedAs     CollectionMember[]     @relation("MemberInvitedBy")
-  collectionInvitesSent   CollectionInvite[]     @relation("InviteInvitedBy")
-  careLogsCreated         CareLog[]              @relation("CareLogCreatedBy")
-  plantImagesUploaded     PlantImage[]           @relation("PlantImageUploadedBy")
-  remindersCreated        Reminder[]             @relation("ReminderCreatedBy")
-  reminderEventsCreated   ReminderEvent[]        @relation("ReminderEventCreatedBy")
-  activityEventsAsActor   ActivityEvent[]        @relation("ActivityEventActor")
-  aiThreadsCreated        AiThread[]             @relation("AiThreadCreatedBy")
-  aiMessagesCreated       AiMessage[]            @relation("AiMessageCreatedBy")
+  collectionsCreated         Collection[]               @relation("CollectionCreatedBy")
+  collectionMemberships      CollectionMember[]         @relation("MemberUser")
+  collectionInvitedAs        CollectionMember[]         @relation("MemberInvitedBy")
+  collectionInvitesSent      CollectionInvite[]         @relation("InviteInvitedBy")
+  careLogsCreated            CareLog[]                  @relation("CareLogCreatedBy")
+  plantImagesUploaded        PlantImage[]               @relation("PlantImageUploadedBy")
+  remindersCreated           Reminder[]                 @relation("ReminderCreatedBy")
+  reminderEventsCreated      ReminderEvent[]            @relation("ReminderEventCreatedBy")
+  activityEventsAsActor      ActivityEvent[]            @relation("ActivityEventActor")
+  aiThreadsCreated           AiThread[]                 @relation("AiThreadCreatedBy")
+  aiMessagesCreated          AiMessage[]                @relation("AiMessageCreatedBy")
+  plantDiagnosesCreated      PlantDiagnosis[]           @relation("DiagnosisCreatedBy")
+  pushSubscriptions          PushSubscription[]
+  pushNotificationDeliveries PushNotificationDelivery[]
 
+  /// User must opt in before we register a browser push subscription.
+  pushNotificationsEnabled     Boolean                  @default(false) @map("push_notifications_enabled")
+  /// In-app toasts/banners (future); reminders stay visible in lists regardless.
+  inAppNotificationsEnabled    Boolean                  @default(true) @map("in_app_notifications_enabled")
+  /// Minutes from 00:00 UTC (0–1439). Null = quiet hours disabled.
+  notificationQuietStartMinute Int?                     @map("notification_quiet_start_minute")
+  notificationQuietEndMinute   Int?                     @map("notification_quiet_end_minute")
+  /// Preferred time band for reminders (V1: settings + quiet hours; full scheduling can evolve).
+  preferredNotificationWindow  ReminderPreferredWindow? @map("preferred_notification_window")
+
+  theme                 UserTheme            @default(system)
+  waterUnit             WaterUnit            @default(ml) @map("water_unit")
+  lengthUnit            LengthUnit           @default(cm) @map("length_unit")
+  aiPersonalityLevel    AiPersonalityLevel   @default(balanced) @map("ai_personality_level")
+  careSensitivity       CareSensitivity      @default(standard) @map("care_sensitivity")
+  defaultCollectionId   String?              @map("default_collection_id") @db.Uuid
+  defaultCollection     Collection?          @relation("ProfileDefaultCollection", fields: [defaultCollectionId], references: [id], onDelete: SetNull)
+
+  @@index([defaultCollectionId])
   @@map("profiles")
 }
 
-model Collection {
-  id          String    @id @db.Uuid
-  slug        String    @unique
-  name        String
-  description String?
-  /// Private Supabase Storage path for collection hero/cover (same bucket as plant images).
-  coverImageStoragePath String? @map("cover_image_storage_path")
-  coverImageMimeType    String? @map("cover_image_mime_type")
-  createdById String    @map("created_by") @db.Uuid
+/// Web Push subscription (one row per browser/device endpoint).
+model PushSubscription {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  endpoint    String    @unique
+  p256dhKey   String    @map("p256dh_key") @db.Text
+  authKey     String    @map("auth_key") @db.Text
+  userAgent   String?   @map("user_agent") @db.Text
+  deviceLabel String?   @map("device_label") @db.VarChar(120)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
 
-  createdBy Profile             @relation("CollectionCreatedBy", fields: [createdById], references: [id])
-  members   CollectionMember[]
-  invites   CollectionInvite[]
-  areas       Area[]
-  plants      Plant[]
-  plantImages PlantImage[]
-  reminders   Reminder[]
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+enum PushDeliveryKind {
+  due
+  overdue
+}
+
+/// Idempotent send log: at most one grouped push per user, kind, and time bucket.
+model PushNotificationDelivery {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  kind      PushDeliveryKind
+  bucketKey String           @map("bucket_key") @db.VarChar(40)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, bucketKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("push_notification_deliveries")
+}
+
+model Collection {
+  id                    String    @id @db.Uuid
+  slug                  String    @unique
+  name                  String
+  description           String?
+  /// Private Supabase Storage path for collection hero/cover (same bucket as plant images).
+  coverImageStoragePath String?   @map("cover_image_storage_path")
+  coverImageMimeType    String?   @map("cover_image_mime_type")
+  createdById           String    @map("created_by") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt            DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  createdBy      Profile            @relation("CollectionCreatedBy", fields: [createdById], references: [id])
+  members        CollectionMember[]
+  invites        CollectionInvite[]
+  areas          Area[]
+  plants         Plant[]
+  plantImages    PlantImage[]
+  reminders      Reminder[]
   activityEvents ActivityEvent[]
   aiThreads      AiThread[]
+  plantDiagnoses PlantDiagnosis[]
+  profilesWithDefault Profile[] @relation("ProfileDefaultCollection")
 
   @@map("collections")
 }
 
 /// A location group inside a collection (e.g. Living Room, Balcony).
 model Area {
-  id           String    @id @db.Uuid
-  collectionId String    @map("collection_id") @db.Uuid
-  slug         String    @db.VarChar(80)
-  name         String
-  description  String?
-  coverImageStoragePath String? @map("cover_image_storage_path")
-  coverImageMimeType    String? @map("cover_image_mime_type")
-  sortOrder    Int       @default(0) @map("sort_order")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  archivedAt   DateTime? @map("archived_at") @db.Timestamptz(6)
+  id                    String    @id @db.Uuid
+  collectionId          String    @map("collection_id") @db.Uuid
+  slug                  String    @db.VarChar(80)
+  name                  String
+  description           String?
+  coverImageStoragePath String?   @map("cover_image_storage_path")
+  coverImageMimeType    String?   @map("cover_image_mime_type")
+  sortOrder             Int       @default(0) @map("sort_order")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt            DateTime? @map("archived_at") @db.Timestamptz(6)
 
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   plants     Plant[]
@@ -145,41 +209,44 @@ model Area {
 
 /// User plant in a collection; denormalized `collectionId` for slug scope and queries.
 model Plant {
-  id                    String                 @id @db.Uuid
-  collectionId          String                 @map("collection_id") @db.Uuid
-  areaId                String                 @map("area_id") @db.Uuid
-  slug                  String                 @db.VarChar(100)
+  id                    String               @id @db.Uuid
+  collectionId          String               @map("collection_id") @db.Uuid
+  areaId                String               @map("area_id") @db.Uuid
+  slug                  String               @db.VarChar(100)
   nickname              String
   /// Optional label from a future catalog (kept separate from user nickname).
-  referenceCommonName   String?                @map("reference_common_name")
+  referenceCommonName   String?              @map("reference_common_name")
   /// Future stable id from canonical plant DB (optional).
-  referenceCatalogId    String?                @map("reference_catalog_id") @db.Uuid
+  referenceCatalogId    String?              @map("reference_catalog_id") @db.Uuid
   /// Stable local snapshot of the selected reference when the plant was created.
-  referenceSnapshot     Json?                  @map("reference_snapshot") @db.JsonB
-  plantType             String?                @map("plant_type")
-  lifeStage             PlantLifeStage         @map("life_stage")
-  healthStatus          PlantHealthStatus      @map("health_status")
-  acquisitionType       PlantAcquisitionType   @map("acquisition_type")
-  acquiredAt            DateTime?              @map("acquired_at") @db.Date
+  referenceSnapshot     Json?                @map("reference_snapshot") @db.JsonB
+  plantType             String?              @map("plant_type")
+  lifeStage             PlantLifeStage       @map("life_stage")
+  healthStatus          PlantHealthStatus    @map("health_status")
+  /// Latest AI assessment from structured diagnosis (separate from manual `healthStatus`).
+  aiHealthStatus        PlantHealthStatus?   @map("ai_health_status")
+  acquisitionType       PlantAcquisitionType @map("acquisition_type")
+  acquiredAt            DateTime?            @map("acquired_at") @db.Date
   notes                 String?
-  primaryImageUrl       String?                @map("primary_image_url")
+  primaryImageUrl       String?              @map("primary_image_url")
   /// Points to the hero/cover image in `plant_images` (private storage).
-  primaryImageId        String?                @unique @map("primary_image_id") @db.Uuid
-  growthProgressPercent Int?                   @map("growth_progress_percent") @db.SmallInt
-  isFavorite            Boolean                @default(false) @map("is_favorite")
-  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
-  archivedAt            DateTime?              @map("archived_at") @db.Timestamptz(6)
+  primaryImageId        String?              @unique @map("primary_image_id") @db.Uuid
+  growthProgressPercent Int?                 @map("growth_progress_percent") @db.SmallInt
+  isFavorite            Boolean              @default(false) @map("is_favorite")
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt            DateTime?            @map("archived_at") @db.Timestamptz(6)
 
-  collection   Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  area         Area          @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  reference    PlantReference? @relation(fields: [referenceCatalogId], references: [id], onDelete: SetNull)
-  careLogs     CareLog[]
-  images       PlantImage[]  @relation("PlantImages")
-  primaryImage PlantImage?   @relation("PlantPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
-  reminders    Reminder[]
+  collection     Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  area           Area             @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  reference      PlantReference?  @relation(fields: [referenceCatalogId], references: [id], onDelete: SetNull)
+  careLogs       CareLog[]
+  images         PlantImage[]     @relation("PlantImages")
+  primaryImage   PlantImage?      @relation("PlantPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
+  reminders      Reminder[]
   activityEvents ActivityEvent[]
   aiThreads      AiThread[]
+  plantDiagnoses PlantDiagnosis[]
 
   @@unique([collectionId, slug])
   @@index([collectionId, archivedAt])
@@ -190,52 +257,52 @@ model Plant {
 
 /// Provider-backed canonical plant reference stored locally for stable snapshots and future syncing.
 model PlantReference {
-  id                        String    @id @db.Uuid
-  provider                  String    @db.VarChar(40)
-  providerPlantId           String    @map("provider_plant_id") @db.VarChar(100)
-  providerSlug              String?   @map("provider_slug")
-  commonName                String?   @map("common_name")
-  scientificName            String?   @map("scientific_name")
-  family                    String?
-  familyCommonName          String?   @map("family_common_name")
-  genus                     String?
-  status                    String?
-  rank                      String?
-  imageUrl                  String?   @map("image_url")
-  light                     Int?
-  groundHumidity            Int?      @map("ground_humidity")
-  atmosphericHumidity       Int?      @map("atmospheric_humidity")
-  minimumTemperatureDegC    Float?    @map("minimum_temperature_deg_c")
-  maximumTemperatureDegC    Float?    @map("maximum_temperature_deg_c")
-  soilTexture               Json      @default("[]") @map("soil_texture") @db.JsonB
-  soilNutriments            Int?      @map("soil_nutriments")
-  growthRate                String?   @map("growth_rate")
-  duration                  String?
-  observations              String?
-  edible                    Boolean?
-  ediblePart                Json      @default("[]") @map("edible_part") @db.JsonB
-  vegetable                 Boolean?
-  toxicity                  String?
-  averageHeightValue        Float?    @map("average_height_value")
-  averageHeightUnit         String?   @map("average_height_unit")
-  maximumHeightValue        Float?    @map("maximum_height_value")
-  maximumHeightUnit         String?   @map("maximum_height_unit")
-  plantingSpreadValue       Float?    @map("planting_spread_value")
-  plantingSpreadUnit        String?   @map("planting_spread_unit")
-  flowerColor               Json      @default("[]") @map("flower_color") @db.JsonB
-  foliageColor              Json      @default("[]") @map("foliage_color") @db.JsonB
-  leafRetention             Boolean?  @map("leaf_retention")
-  growthForm                String?   @map("growth_form")
-  growthHabit               String?   @map("growth_habit")
-  ligneousType              String?   @map("ligneous_type")
-  lightLabel                String?   @map("light_label")
-  soilMoistureLabel         String?   @map("soil_moisture_label")
-  humidityLabel             String?   @map("humidity_label")
-  temperatureLabel          String?   @map("temperature_label")
-  toxicityLabel             String?   @map("toxicity_label")
-  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                 DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lastSyncedAt              DateTime  @map("last_synced_at") @db.Timestamptz(6)
+  id                     String   @id @db.Uuid
+  provider               String   @db.VarChar(40)
+  providerPlantId        String   @map("provider_plant_id") @db.VarChar(100)
+  providerSlug           String?  @map("provider_slug")
+  commonName             String?  @map("common_name")
+  scientificName         String?  @map("scientific_name")
+  family                 String?
+  familyCommonName       String?  @map("family_common_name")
+  genus                  String?
+  status                 String?
+  rank                   String?
+  imageUrl               String?  @map("image_url")
+  light                  Int?
+  groundHumidity         Int?     @map("ground_humidity")
+  atmosphericHumidity    Int?     @map("atmospheric_humidity")
+  minimumTemperatureDegC Float?   @map("minimum_temperature_deg_c")
+  maximumTemperatureDegC Float?   @map("maximum_temperature_deg_c")
+  soilTexture            Json     @default("[]") @map("soil_texture") @db.JsonB
+  soilNutriments         Int?     @map("soil_nutriments")
+  growthRate             String?  @map("growth_rate")
+  duration               String?
+  observations           String?
+  edible                 Boolean?
+  ediblePart             Json     @default("[]") @map("edible_part") @db.JsonB
+  vegetable              Boolean?
+  toxicity               String?
+  averageHeightValue     Float?   @map("average_height_value")
+  averageHeightUnit      String?  @map("average_height_unit")
+  maximumHeightValue     Float?   @map("maximum_height_value")
+  maximumHeightUnit      String?  @map("maximum_height_unit")
+  plantingSpreadValue    Float?   @map("planting_spread_value")
+  plantingSpreadUnit     String?  @map("planting_spread_unit")
+  flowerColor            Json     @default("[]") @map("flower_color") @db.JsonB
+  foliageColor           Json     @default("[]") @map("foliage_color") @db.JsonB
+  leafRetention          Boolean? @map("leaf_retention")
+  growthForm             String?  @map("growth_form")
+  growthHabit            String?  @map("growth_habit")
+  ligneousType           String?  @map("ligneous_type")
+  lightLabel             String?  @map("light_label")
+  soilMoistureLabel      String?  @map("soil_moisture_label")
+  humidityLabel          String?  @map("humidity_label")
+  temperatureLabel       String?  @map("temperature_label")
+  toxicityLabel          String?  @map("toxicity_label")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastSyncedAt           DateTime @map("last_synced_at") @db.Timestamptz(6)
 
   plants Plant[]
 
@@ -261,9 +328,9 @@ model CareLog {
   updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt   DateTime?         @map("deleted_at") @db.Timestamptz(6)
 
-  plant       Plant        @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  createdBy   Profile      @relation("CareLogCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
-  plantImages PlantImage[]
+  plant          Plant           @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy      Profile         @relation("CareLogCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  plantImages    PlantImage[]
   reminderEvents ReminderEvent[]
 
   @@index([plantId, actionAt])
@@ -273,29 +340,29 @@ model CareLog {
 
 /// Private Supabase Storage metadata; files are never public URLs.
 model PlantImage {
-  id            String        @id @default(uuid()) @db.Uuid
-  collectionId  String        @map("collection_id") @db.Uuid
-  plantId       String        @map("plant_id") @db.Uuid
-  careLogId     String?       @map("care_log_id") @db.Uuid
-  diagnosisId   String?       @map("diagnosis_id") @db.Uuid
-  imageType     PlantImageType @map("image_type")
-  storagePath   String        @map("storage_path")
-  mimeType      String        @map("mime_type")
-  fileSize      Int           @map("file_size")
-  width         Int?
-  height        Int?
-  capturedAt    DateTime?     @map("captured_at") @db.Timestamptz(6)
-  uploadedById  String        @map("uploaded_by") @db.Uuid
-  metadata      Json?         @db.JsonB
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  id           String         @id @default(uuid()) @db.Uuid
+  collectionId String         @map("collection_id") @db.Uuid
+  plantId      String         @map("plant_id") @db.Uuid
+  careLogId    String?        @map("care_log_id") @db.Uuid
+  diagnosisId  String?        @map("diagnosis_id") @db.Uuid
+  imageType    PlantImageType @map("image_type")
+  storagePath  String         @map("storage_path")
+  mimeType     String         @map("mime_type")
+  fileSize     Int            @map("file_size")
+  width        Int?
+  height       Int?
+  capturedAt   DateTime?      @map("captured_at") @db.Timestamptz(6)
+  uploadedById String         @map("uploaded_by") @db.Uuid
+  metadata     Json?          @db.JsonB
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?      @map("deleted_at") @db.Timestamptz(6)
 
-  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  plant      Plant      @relation("PlantImages", fields: [plantId], references: [id], onDelete: Cascade)
-  careLog    CareLog?   @relation(fields: [careLogId], references: [id], onDelete: SetNull)
-  uploadedBy Profile    @relation("PlantImageUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
-  primaryForPlant Plant? @relation("PlantPrimaryImage")
+  collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant           Plant      @relation("PlantImages", fields: [plantId], references: [id], onDelete: Cascade)
+  careLog         CareLog?   @relation(fields: [careLogId], references: [id], onDelete: SetNull)
+  uploadedBy      Profile    @relation("PlantImageUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
+  primaryForPlant Plant?     @relation("PlantPrimaryImage")
 
   @@index([plantId, deletedAt])
   @@index([collectionId, deletedAt])
@@ -323,17 +390,21 @@ model CollectionMember {
 model CollectionInvite {
   id           String                 @id @db.Uuid
   collectionId String                 @map("collection_id") @db.Uuid
-  email        String?
+  email        String
   invitedById  String                 @map("invited_by") @db.Uuid
+  /// Optional share link; in-app acceptance does not require it.
   token        String                 @unique
   status       CollectionInviteStatus
   expiresAt    DateTime               @map("expires_at") @db.Timestamptz(6)
   createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   acceptedAt   DateTime?              @map("accepted_at") @db.Timestamptz(6)
+  declinedAt   DateTime?              @map("declined_at") @db.Timestamptz(6)
+  revokedAt    DateTime?              @map("revoked_at") @db.Timestamptz(6)
 
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   invitedBy  Profile    @relation("InviteInvitedBy", fields: [invitedById], references: [id])
 
+  @@index([collectionId, status])
   @@map("collection_invites")
 }
 
@@ -363,6 +434,33 @@ enum ReminderPreferredWindow {
   flexible
 }
 
+enum UserTheme {
+  light
+  dark
+  system
+}
+
+enum WaterUnit {
+  ml
+}
+
+enum LengthUnit {
+  cm
+  in
+}
+
+enum AiPersonalityLevel {
+  factual
+  balanced
+  warm
+}
+
+enum CareSensitivity {
+  relaxed
+  standard
+  cautious
+}
+
 enum ReminderEventType {
   created
   completed
@@ -374,31 +472,31 @@ enum ReminderEventType {
 }
 
 model Reminder {
-  id                  String                  @id @db.Uuid
-  collectionId      String                  @map("collection_id") @db.Uuid
-  plantId             String                  @map("plant_id") @db.Uuid
-  reminderType      ReminderType            @map("reminder_type")
-  title               String
-  description         String?
-  source              ReminderSource          @default(user)
+  id                String                   @id @db.Uuid
+  collectionId      String                   @map("collection_id") @db.Uuid
+  plantId           String                   @map("plant_id") @db.Uuid
+  reminderType      ReminderType             @map("reminder_type")
+  title             String
+  description       String?
+  source            ReminderSource           @default(user)
   /// JSON: { "intervalValue": number, "intervalUnit": "days" | "weeks" | "months" }
-  recurrenceRule    Json                    @map("recurrence_rule") @db.JsonB
-  preferredWindow ReminderPreferredWindow? @map("preferred_window")
-  gracePeriodHours  Int?                    @map("grace_period_hours")
-  overdueAfterHours Int?                    @map("overdue_after_hours")
-  lastCompletedAt   DateTime?               @map("last_completed_at") @db.Timestamptz(6)
-  nextDueAt         DateTime                @map("next_due_at") @db.Timestamptz(6)
-  isPaused          Boolean                 @default(false) @map("is_paused")
-  pausedUntil       DateTime?               @map("paused_until") @db.Timestamptz(6)
-  isActive          Boolean                 @default(true) @map("is_active")
-  createdById       String                  @map("created_by") @db.Uuid
-  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
-  archivedAt        DateTime?               @map("archived_at") @db.Timestamptz(6)
+  recurrenceRule    Json                     @map("recurrence_rule") @db.JsonB
+  preferredWindow   ReminderPreferredWindow? @map("preferred_window")
+  gracePeriodHours  Int?                     @map("grace_period_hours")
+  overdueAfterHours Int?                     @map("overdue_after_hours")
+  lastCompletedAt   DateTime?                @map("last_completed_at") @db.Timestamptz(6)
+  nextDueAt         DateTime                 @map("next_due_at") @db.Timestamptz(6)
+  isPaused          Boolean                  @default(false) @map("is_paused")
+  pausedUntil       DateTime?                @map("paused_until") @db.Timestamptz(6)
+  isActive          Boolean                  @default(true) @map("is_active")
+  createdById       String                   @map("created_by") @db.Uuid
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt        DateTime?                @map("archived_at") @db.Timestamptz(6)
 
-  collection Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  plant      Plant         @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  createdBy  Profile       @relation("ReminderCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  collection Collection      @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant      Plant           @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy  Profile         @relation("ReminderCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   events     ReminderEvent[]
 
   @@index([plantId, archivedAt])
@@ -410,15 +508,15 @@ model Reminder {
 model ReminderEvent {
   id          String            @id @db.Uuid
   reminderId  String            @map("reminder_id") @db.Uuid
-  eventType ReminderEventType @map("event_type")
-  careLogId String?           @map("care_log_id") @db.Uuid
+  eventType   ReminderEventType @map("event_type")
+  careLogId   String?           @map("care_log_id") @db.Uuid
   metadata    Json              @default("{}") @db.JsonB
   createdById String            @map("created_by") @db.Uuid
   createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-  careLog  CareLog? @relation(fields: [careLogId], references: [id], onDelete: SetNull)
-  createdBy Profile @relation("ReminderEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  reminder  Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  careLog   CareLog? @relation(fields: [careLogId], references: [id], onDelete: SetNull)
+  createdBy Profile  @relation("ReminderEventCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([reminderId, createdAt])
   @@index([careLogId])
@@ -427,14 +525,14 @@ model ReminderEvent {
 
 /// User-facing collaboration feed (not an audit log). Extensible `eventType` string.
 model ActivityEvent {
-  id           String    @id @default(uuid()) @db.Uuid
-  collectionId String    @map("collection_id") @db.Uuid
-  plantId      String?   @map("plant_id") @db.Uuid
-  actorUserId  String?   @map("actor_user_id") @db.Uuid
-  eventType    String    @map("event_type") @db.VarChar(80)
-  summary      String    @db.Text
-  payload      Json?     @db.JsonB
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id           String   @id @default(uuid()) @db.Uuid
+  collectionId String   @map("collection_id") @db.Uuid
+  plantId      String?  @map("plant_id") @db.Uuid
+  actorUserId  String?  @map("actor_user_id") @db.Uuid
+  eventType    String   @map("event_type") @db.VarChar(80)
+  summary      String   @db.Text
+  payload      Json?    @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   plant      Plant?     @relation(fields: [plantId], references: [id], onDelete: SetNull)
@@ -450,6 +548,17 @@ enum AiThreadType {
   plant
 }
 
+enum PlantDiagnosisStatus {
+  active
+  superseded
+  resolved
+}
+
+enum PlantDiagnosisCreatorType {
+  ai
+  user
+}
+
 enum AiMessageRole {
   user
   assistant
@@ -457,23 +566,65 @@ enum AiMessageRole {
   tool
 }
 
+/// Structured AI plant diagnosis; history preserved via status + supersedes chain.
+model PlantDiagnosis {
+  id                      String                    @id @default(uuid()) @db.Uuid
+  collectionId            String                    @map("collection_id") @db.Uuid
+  plantId                 String                    @map("plant_id") @db.Uuid
+  basedOnThreadId         String?                   @map("based_on_thread_id") @db.Uuid
+  status                  PlantDiagnosisStatus
+  summary                 String                    @db.Text
+  suspectedIssues         Json                      @default("[]") @map("suspected_issues") @db.JsonB
+  confidence              Json?                     @db.JsonB
+  recommendations         Json                      @default("[]") @map("recommendations") @db.JsonB
+  safestNextSteps         Json                      @default("[]") @map("safest_next_steps") @db.JsonB
+  followUpQuestions       Json                      @default("[]") @map("follow_up_questions") @db.JsonB
+  reasoningNotes          String?                   @map("reasoning_notes") @db.Text
+  observedEvidence        Json?                     @map("observed_evidence") @db.JsonB
+  monitorNext             Json?                     @map("monitor_next") @db.JsonB
+  whenToRecheck           String?                   @map("when_to_recheck") @db.Text
+  diagnosedAt             DateTime                  @map("diagnosed_at") @db.Timestamptz(6)
+  createdByType           PlantDiagnosisCreatorType @map("created_by_type")
+  createdById             String?                   @map("created_by") @db.Uuid
+  supersedesDiagnosisId   String?                   @map("supersedes_diagnosis_id") @db.Uuid
+  resolvedAt              DateTime?                 @map("resolved_at") @db.Timestamptz(6)
+  suggestedAiHealthStatus PlantHealthStatus?        @map("suggested_ai_health_status")
+  sourceImageIds          Json                      @default("[]") @map("source_image_ids") @db.JsonB
+  createdAt               DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  collection    Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant         Plant            @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  basedOnThread AiThread?        @relation("DiagnosisThread", fields: [basedOnThreadId], references: [id], onDelete: SetNull)
+  createdBy     Profile?         @relation("DiagnosisCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  supersedes    PlantDiagnosis?  @relation("DiagnosisSupersedes", fields: [supersedesDiagnosisId], references: [id], onDelete: SetNull)
+  supersededBy  PlantDiagnosis[] @relation("DiagnosisSupersedes")
+  aiMessages    AiMessage[]
+
+  @@index([plantId, status])
+  @@index([plantId, diagnosedAt(sort: Desc)])
+  @@index([collectionId])
+  @@map("plant_diagnoses")
+}
+
 /// AI assistant conversation thread (global or plant-scoped).
 model AiThread {
-  id             String        @id @default(uuid()) @db.Uuid
-  collectionId   String?       @map("collection_id") @db.Uuid
-  plantId        String?       @map("plant_id") @db.Uuid
-  createdById    String        @map("created_by") @db.Uuid
-  threadType     AiThreadType  @map("thread_type")
-  title          String?
-  lastMessageAt  DateTime?     @map("last_message_at") @db.Timestamptz(6)
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
-  archivedAt     DateTime?     @map("archived_at") @db.Timestamptz(6)
+  id            String       @id @default(uuid()) @db.Uuid
+  collectionId  String?      @map("collection_id") @db.Uuid
+  plantId       String?      @map("plant_id") @db.Uuid
+  createdById   String       @map("created_by") @db.Uuid
+  threadType    AiThreadType @map("thread_type")
+  title         String?
+  lastMessageAt DateTime?    @map("last_message_at") @db.Timestamptz(6)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt    DateTime?    @map("archived_at") @db.Timestamptz(6)
 
-  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  plant      Plant?      @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  createdBy  Profile     @relation("AiThreadCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  collection Collection?      @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  plant      Plant?           @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdBy  Profile          @relation("AiThreadCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   messages   AiMessage[]
+  diagnoses  PlantDiagnosis[] @relation("DiagnosisThread")
 
   @@index([createdById, threadType, lastMessageAt(sort: Desc)])
   @@index([plantId])
@@ -482,18 +633,20 @@ model AiThread {
 }
 
 model AiMessage {
-  id                  String        @id @default(uuid()) @db.Uuid
-  threadId            String        @map("thread_id") @db.Uuid
-  role                AiMessageRole
-  content             String        @db.Text
-  contextSnapshot     Json?         @map("context_snapshot") @db.JsonB
-  relatedDiagnosisId  String?       @map("related_diagnosis_id") @db.Uuid
-  createdById         String?       @map("created_by") @db.Uuid
-  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String        @id @default(uuid()) @db.Uuid
+  threadId           String        @map("thread_id") @db.Uuid
+  role               AiMessageRole
+  content            String        @db.Text
+  contextSnapshot    Json?         @map("context_snapshot") @db.JsonB
+  relatedDiagnosisId String?       @map("related_diagnosis_id") @db.Uuid
+  createdById        String?       @map("created_by") @db.Uuid
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  thread    AiThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  createdBy Profile? @relation("AiMessageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  thread           AiThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  createdBy        Profile?        @relation("AiMessageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  relatedDiagnosis PlantDiagnosis? @relation(fields: [relatedDiagnosisId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
+  @@index([relatedDiagnosisId])
   @@map("ai_messages")
 }

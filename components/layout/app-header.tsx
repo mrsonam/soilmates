@@ -1,15 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Mail } from "lucide-react";
 import { titleForPath } from "@/lib/layout/nav-config";
 import type { CollectionOption } from "./collection-switcher";
 import { useCollectionHeaderState } from "./collection-header-context";
+import { SyncStatusIndicator } from "@/components/offline/sync-status-indicator";
 
 type AppHeaderProps = {
   collections: CollectionOption[];
+  pendingInviteCount?: number;
 };
 
-export function AppHeader({ collections }: AppHeaderProps) {
+export function AppHeader({
+  collections,
+  pendingInviteCount = 0,
+}: AppHeaderProps) {
   const pathname = usePathname();
   const baseTitle = titleForPath(pathname);
   const collectionHeaderState = useCollectionHeaderState();
@@ -22,6 +29,14 @@ export function AppHeader({ collections }: AppHeaderProps) {
 
   const plantsRouteMatch = pathname.match(
     /^\/collections\/([^/]+)\/plants(?:\/([^/]+))?\/?$/,
+  );
+
+  const membersRouteMatch = pathname.match(
+    /^\/collections\/([^/]+)\/members\/?$/,
+  );
+
+  const areasListRouteMatch = pathname.match(
+    /^\/collections\/([^/]+)\/areas\/?$/,
   );
 
   let subtitle: string | null = null;
@@ -43,6 +58,20 @@ export function AppHeader({ collections }: AppHeaderProps) {
       } else {
         title = "Plant";
       }
+    }
+  } else if (membersRouteMatch) {
+    const colSlug = membersRouteMatch[1];
+    const col = collections.find((c) => c.slug === colSlug);
+    if (col) {
+      subtitle = col.name;
+      title = "Members";
+    }
+  } else if (areasListRouteMatch) {
+    const colSlug = areasListRouteMatch[1];
+    const col = collections.find((c) => c.slug === colSlug);
+    if (col) {
+      subtitle = col.name;
+      title = "Areas";
     }
   } else if (isCollectionDetail) {
     const col = collections.find((c) => c.slug === slugSegment);
@@ -70,7 +99,7 @@ export function AppHeader({ collections }: AppHeaderProps) {
     <header className="sticky top-0 z-30 border-b border-outline-variant/10 bg-surface/90 backdrop-blur-xl">
       <div className="flex min-h-14 justify-center px-4 py-2 sm:min-h-[3.75rem] sm:px-6 sm:py-0 lg:px-8">
         <div className="flex w-full items-center gap-3 lg:gap-4">
-          <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">
             {areaHeader ? (
               <>
                 <p className="text-sm text-on-surface-variant">{areaHeader.eyebrow}</p>
@@ -100,6 +129,21 @@ export function AppHeader({ collections }: AppHeaderProps) {
                 )}
               </>
             )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2 pt-0.5">
+            {pendingInviteCount > 0 ? (
+              <Link
+                href="/invitations"
+                className="relative flex size-10 items-center justify-center rounded-2xl text-on-surface-variant transition hover:bg-surface-container-high hover:text-primary"
+                aria-label={`${pendingInviteCount} pending invitations`}
+              >
+                <Mail className="size-5" strokeWidth={1.75} aria-hidden />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.6rem] font-bold leading-none text-on-primary">
+                  {pendingInviteCount > 9 ? "9+" : pendingInviteCount}
+                </span>
+              </Link>
+            ) : null}
+            <SyncStatusIndicator />
           </div>
         </div>
       </div>
