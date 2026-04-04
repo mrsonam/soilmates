@@ -10,6 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import type { UserTheme } from "@prisma/client";
+import {
+  PWA_THEME_COLOR_DARK,
+  PWA_THEME_COLOR_LIGHT,
+} from "@/lib/pwa/branding";
 
 type ThemeContextValue = {
   theme: UserTheme;
@@ -50,6 +54,36 @@ export function ThemeProvider({
         theme === "dark" || (theme === "system" && mq.matches);
       document.documentElement.classList.toggle("dark", dark);
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
+
+      /**
+       * iOS standalone PWA uses the last `theme-color` meta for the top chrome.
+       * Media-query-only tags follow `prefers-color-scheme`, which breaks when the
+       * user enables app dark mode while the OS stays light — append a non-media
+       * meta so Safari matches the actual `html.dark` state.
+       */
+      const content = dark ? PWA_THEME_COLOR_DARK : PWA_THEME_COLOR_LIGHT;
+      let meta = document.getElementById(
+        "soilmates-theme-color",
+      ) as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.id = "soilmates-theme-color";
+        meta.name = "theme-color";
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+
+      let statusMeta = document.getElementById(
+        "soilmates-apple-status-bar",
+      ) as HTMLMetaElement | null;
+      if (!statusMeta) {
+        statusMeta = document.createElement("meta");
+        statusMeta.id = "soilmates-apple-status-bar";
+        statusMeta.setAttribute("name", "apple-mobile-web-app-status-bar-style");
+        document.head.appendChild(statusMeta);
+      }
+      /** Dark: translucent bar so `html` `--surface` fills the notch; light: separate light bar. */
+      statusMeta.setAttribute("content", dark ? "black-translucent" : "default");
     }
     apply();
     mq.addEventListener("change", apply);

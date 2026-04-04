@@ -14,6 +14,7 @@ type SyncStoreState = {
   pendingMutations: number;
   pendingImages: number;
   conflictCount: number;
+  deadLetterCount: number;
   lastSyncAt: number | null;
   lastSyncMessage: string | null;
   ready: boolean;
@@ -24,6 +25,7 @@ type SyncStoreState = {
     pendingMutations: number;
     pendingImages: number;
     conflictCount: number;
+    deadLetterCount: number;
   }) => void;
   bumpLastSync: (message?: string | null) => void;
 };
@@ -33,10 +35,11 @@ function derivePhase(
   syncing: boolean,
   pending: number,
   conflicts: number,
+  deadLetters: number,
 ): GlobalSyncPhase {
   if (!online) return "offline";
   if (syncing) return "syncing";
-  if (conflicts > 0) return "attention";
+  if (conflicts > 0 || deadLetters > 0) return "attention";
   if (pending > 0) return "synced";
   return "idle";
 }
@@ -48,6 +51,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
   pendingMutations: 0,
   pendingImages: 0,
   conflictCount: 0,
+  deadLetterCount: 0,
   lastSyncAt: null,
   lastSyncMessage: null,
   ready: false,
@@ -57,7 +61,13 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
     const pending = s.pendingMutations + s.pendingImages;
     set({
       online,
-      phase: derivePhase(online, s.syncing, pending, s.conflictCount),
+      phase: derivePhase(
+        online,
+        s.syncing,
+        pending,
+        s.conflictCount,
+        s.deadLetterCount,
+      ),
     });
   },
   setSyncing: (syncing) => {
@@ -65,17 +75,30 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
     const pending = s.pendingMutations + s.pendingImages;
     set({
       syncing,
-      phase: derivePhase(s.online, syncing, pending, s.conflictCount),
+      phase: derivePhase(
+        s.online,
+        syncing,
+        pending,
+        s.conflictCount,
+        s.deadLetterCount,
+      ),
     });
   },
-  setCounts: ({ pendingMutations, pendingImages, conflictCount }) => {
+  setCounts: ({ pendingMutations, pendingImages, conflictCount, deadLetterCount }) => {
     const s = get();
     const pending = pendingMutations + pendingImages;
     set({
       pendingMutations,
       pendingImages,
       conflictCount,
-      phase: derivePhase(s.online, s.syncing, pending, conflictCount),
+      deadLetterCount,
+      phase: derivePhase(
+        s.online,
+        s.syncing,
+        pending,
+        conflictCount,
+        deadLetterCount,
+      ),
     });
   },
   bumpLastSync: (message) =>

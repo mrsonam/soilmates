@@ -4,8 +4,14 @@ import { Cloud, CloudOff, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { useSyncStatus } from "@/hooks/useSyncStatus";
 
 export function SyncStatusIndicator() {
-  const { phase, ready, pendingMutations, pendingImages, conflictCount } =
-    useSyncStatus();
+  const {
+    phase,
+    ready,
+    pendingMutations,
+    pendingImages,
+    conflictCount,
+    deadLetterCount,
+  } = useSyncStatus();
 
   if (!ready) {
     return (
@@ -24,7 +30,7 @@ export function SyncStatusIndicator() {
       ? "Offline"
       : phase === "syncing"
         ? "Syncing changes"
-        : conflictCount > 0
+        : conflictCount > 0 || deadLetterCount > 0
           ? "Sync needs attention"
           : pending > 0
             ? "Changes waiting to sync"
@@ -35,7 +41,7 @@ export function SyncStatusIndicator() {
       ? CloudOff
       : phase === "syncing"
         ? Loader2
-        : conflictCount > 0
+        : conflictCount > 0 || deadLetterCount > 0
           ? AlertCircle
           : pending > 0
             ? RefreshCw

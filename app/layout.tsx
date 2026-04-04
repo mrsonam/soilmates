@@ -7,6 +7,8 @@ import {
   PWA_APP_ICON_192,
   PWA_APP_ICON_SVG,
   PWA_APPLE_TOUCH_ICON,
+  PWA_THEME_COLOR_DARK,
+  PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
 
 const inter = Inter({
@@ -93,9 +95,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  /**
+   * Shell background colors (not primary green) — matches `--surface` in globals.css.
+   * In-app theme overrides via `ThemeProvider` (meta appended last) when user chooses
+   * dark/light independently of the OS.
+   */
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#516447" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1c18" },
+    { media: "(prefers-color-scheme: light)", color: PWA_THEME_COLOR_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: PWA_THEME_COLOR_DARK },
   ],
   width: "device-width",
   initialScale: 1,
@@ -114,7 +121,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-surface text-on-surface">
+      <body className="flex min-h-dvh flex-col bg-surface text-on-surface">
         <Providers>{children}</Providers>
       </body>
     </html>

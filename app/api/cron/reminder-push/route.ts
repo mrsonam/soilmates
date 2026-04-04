@@ -4,6 +4,7 @@
  */
 import { NextResponse } from "next/server";
 import { deliverReminderNotifications } from "@/lib/push/deliver-reminders";
+import { serverLogger } from "@/lib/logging/server";
 
 export async function GET(req: Request) {
   if (process.env.CRON_SECRET) {
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
     const result = await deliverReminderNotifications(new Date());
     return NextResponse.json(result);
   } catch (e) {
-    console.error("[cron/reminder-push]", e);
+    serverLogger.integration("cron", "reminder_push_failed", "error", {}, e);
     return NextResponse.json(
       { error: "Delivery failed" },
       { status: 500 },

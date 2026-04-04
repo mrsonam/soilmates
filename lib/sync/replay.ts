@@ -1,7 +1,10 @@
 import { classifyQueueFailure } from "./conflicts";
+import { SYNC_QUEUE_MAX_RETRIES } from "./constants";
+import { clientLogger } from "@/lib/logging/client";
 import { getOfflineDb } from "@/lib/offline/db";
 import {
   getConflictMutationCount,
+  getDeadLetterMutationCount,
   getPendingMutationCount,
   listPendingImageUploads,
   listPendingQueue,
@@ -11,6 +14,7 @@ import {
   updateQueueRecord,
 } from "./queue";
 import { readNavigatorOnline } from "./network";
+import { resetStuckSyncingMutations } from "./stuck";
 import { replayImageUpload, replayMutation } from "./replay-handlers";
 
 let replayInFlight = false;
@@ -34,10 +38,38 @@ export async function processSyncQueueOnce(options?: {
   let errors = 0;
 
   try {
+    await resetStuckSyncingMutations();
+
     const pending = await listPendingQueue();
     for (const row of pending) {
       if (!readNavigatorOnline()) break;
-      await updateQueueRecord(row.localId, { status: "syncing" });
+
+      if (row.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
+        await updateQueueRecord(row.localId, {
+          status: "dead_letter",
+          lastError:
+            row.lastError?.includes("Max retries") === true
+              ? row.lastError
+              : `Could not sync after ${SYNC_QUEUE_MAX_RETRIES} tries. ${row.lastError ?? ""}`.trim(),
+          syncingStartedAt: undefined,
+        });
+        clientLogger.warning(
+          "sync.queue.dead_letter",
+          "Mutation exceeded max retries",
+          {
+            operationType: row.operationType,
+            localId: row.localId,
+            retryCount: row.retryCount,
+          },
+        );
+        errors += 1;
+        continue;
+      }
+
+      await updateQueueRecord(row.localId, {
+        status: "syncing",
+        syncingStartedAt: Date.now(),
+      });
       options?.onProgress?.({ phase: "mutation", id: row.localId });
       try {
         const result = await replayMutation(row.operationType, row.payload);
@@ -54,7 +86,17 @@ export async function processSyncQueueOnce(options?: {
             lastError: result.error,
             retryCount: row.retryCount + 1,
             conflictState: isConflict ? "pending_user" : null,
+            syncingStartedAt: undefined,
           });
+          clientLogger.warning(
+            "sync.queue.mutation_failed",
+            result.error,
+            {
+              operationType: row.operationType,
+              localId: row.localId,
+              conflict: Boolean(isConflict),
+            },
+          );
           errors += 1;
         }
       } catch (e) {
@@ -64,7 +106,9 @@ export async function processSyncQueueOnce(options?: {
           status,
           lastError: msg,
           retryCount: row.retryCount + 1,
+          syncingStartedAt: undefined,
         });
+        clientLogger.error("sync.queue.mutation_error", msg, { operationType: row.operationType }, e);
         errors += 1;
       }
     }
@@ -72,6 +116,23 @@ export async function processSyncQueueOnce(options?: {
     const images = await listPendingImageUploads();
     for (const img of images) {
       if (!readNavigatorOnline()) break;
+
+      if (img.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
+        await updateImageUpload(img.localId, {
+          ...img,
+          status: "dead_letter",
+          lastError:
+            img.lastError?.includes("Max retries") === true
+              ? img.lastError
+              : `Upload failed after ${SYNC_QUEUE_MAX_RETRIES} tries.`,
+        });
+        clientLogger.warning("sync.image.dead_letter", "Image upload cap", {
+          localId: img.localId,
+        });
+        errors += 1;
+        continue;
+      }
+
       await updateImageUpload(img.localId, { ...img, status: "uploading" });
       options?.onProgress?.({ phase: "image", id: img.localId });
       try {
@@ -86,6 +147,9 @@ export async function processSyncQueueOnce(options?: {
             lastError: result.error,
             retryCount: img.retryCount + 1,
           });
+          clientLogger.warning("sync.image.failed", result.error, {
+            localId: img.localId,
+          });
           errors += 1;
         }
       } catch (e) {
@@ -96,6 +160,7 @@ export async function processSyncQueueOnce(options?: {
           lastError: msg,
           retryCount: img.retryCount + 1,
         });
+        clientLogger.error("sync.image.error", msg, { localId: img.localId }, e);
         errors += 1;
       }
     }
@@ -110,17 +175,23 @@ export async function refreshPendingCounts(): Promise<{
   mutations: number;
   images: number;
   conflicts: number;
+  deadLetters: number;
 }> {
   const db = getOfflineDb();
   const mutations = await getPendingMutationCount();
   const conflicts = await getConflictMutationCount();
+  const deadMutations = await getDeadLetterMutationCount();
+  const deadImages = db
+    ? await db.imageUploadQueue.where("status").equals("dead_letter").count()
+    : 0;
+  const deadLetters = deadMutations + deadImages;
   const images = db
     ? await db.imageUploadQueue
         .where("status")
-        .anyOf(["pending", "failed"])
+        .anyOf(["pending", "failed", "uploading"])
         .count()
     : 0;
-  return { mutations, images, conflicts };
+  return { mutations, images, conflicts, deadLetters };
 }
 
 export async function discardConflictRecord(localId: string): Promise<void> {

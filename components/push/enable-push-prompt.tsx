@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getFeatureFlags } from "@/lib/feature-flags";
 import { subscribeDeviceAndEnablePush } from "./enable-push-flow";
 
 const DISMISS_KEY = "soilmates-push-prompt-dismissed-v1";
@@ -43,6 +44,7 @@ export function EnablePushPrompt({
   }, []);
 
   const visible =
+    getFeatureFlags().pushNotifications &&
     dismissed === false &&
     eligible &&
     !pushEnabledInDb &&

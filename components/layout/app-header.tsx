@@ -96,7 +96,7 @@ export function AppHeader({
       : null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-outline-variant/[0.08] bg-surface/88 backdrop-blur-xl backdrop-saturate-150 shadow-[var(--shadow-header)]">
+    <header className="sticky top-0 z-30 border-b border-outline-variant/[0.08] bg-surface/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 shadow-[var(--shadow-header)]">
       <div className="flex min-h-14 justify-center px-4 py-2 sm:min-h-[3.75rem] sm:px-6 sm:py-0 lg:px-8">
         <div className="flex w-full items-center gap-3 lg:gap-4">
           <div className="flex min-w-0 flex-1 flex-col">

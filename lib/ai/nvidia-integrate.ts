@@ -28,6 +28,11 @@ export type NvidiaChatCompletionPayload = {
   response_format?: { type: "json_object" };
 };
 
+const NVIDIA_FETCH_TIMEOUT_MS = Math.min(
+  120_000,
+  Number(process.env.NVIDIA_FETCH_TIMEOUT_MS) || 90_000,
+);
+
 export async function postNvidiaChatCompletion(
   payload: NvidiaChatCompletionPayload,
 ): Promise<Response> {
@@ -44,5 +49,6 @@ export async function postNvidiaChatCompletion(
       Accept: "application/json",
     },
     body: JSON.stringify({ ...payload, stream: false }),
+    signal: AbortSignal.timeout(NVIDIA_FETCH_TIMEOUT_MS),
   });
 }

@@ -10,6 +10,7 @@ import {
   parseJsonObjectFromAssistantText,
 } from "@/lib/ai/chat-content";
 import { normalizeDiagnosisPayload } from "./normalize-model-output";
+import { serverLogger } from "@/lib/logging/server";
 
 function bufferToDataUrl(buffer: ArrayBuffer, mime: string): string {
   const b64 = Buffer.from(buffer).toString("base64");
@@ -162,7 +163,7 @@ export async function generatePlantDiagnosisVision(input: {
     const content = data.choices?.[0]?.message?.content;
     const raw = extractTextFromChatContent(content);
     if (!raw) {
-      console.error("[diagnosis] empty content", {
+      serverLogger.integration("ai", "diagnosis_empty_content", "warning", {
         sample: JSON.stringify(data).slice(0, 400),
       });
       throw new Error("Empty model response");
@@ -172,28 +173,26 @@ export async function generatePlantDiagnosisVision(input: {
     try {
       parsed = parseJsonObjectFromAssistantText(raw);
     } catch (parseErr) {
-      console.error("[diagnosis] JSON extract failed", {
+      serverLogger.integration("ai", "diagnosis_json_extract_failed", "warning", {
         head: raw.slice(0, 600),
-        err: parseErr,
-      });
+      }, parseErr);
       throw new Error("Model did not return parseable JSON");
     }
 
     try {
       return normalizeDiagnosisPayload(parsed);
     } catch (normErr) {
-      console.error("[diagnosis] normalize failed", {
+      serverLogger.integration("ai", "diagnosis_normalize_failed", "warning", {
         keys:
           parsed && typeof parsed === "object"
             ? Object.keys(parsed as object)
             : [],
-        err: normErr,
-      });
+      }, normErr);
       throw new Error("Model JSON could not be normalized");
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";
-    console.error("[generatePlantDiagnosisVision]", e);
+    serverLogger.integration("ai", "diagnosis_vision_failed", "error", {}, e);
     return fallbackDiagnosis(msg.slice(0, 120), plantNickname);
   }
 }

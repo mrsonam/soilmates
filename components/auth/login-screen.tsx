@@ -52,7 +52,7 @@ export function LoginScreen({ authError }: LoginScreenProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-1">
+    <div className="flex min-h-screen flex-1 pt-[env(safe-area-inset-top)]">
       {/* Left — hero (DESIGN: glass testimonial, gradient soul on imagery) */}
       <div className="relative hidden w-1/2 overflow-hidden rounded-r-4xl lg:block">
         <Image

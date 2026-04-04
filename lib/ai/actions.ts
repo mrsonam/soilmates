@@ -11,6 +11,8 @@ import {
 } from "./context-builders";
 import { generateAssistantReply } from "./provider";
 import type { AssistantContextSnapshot } from "./types";
+import { getFeatureFlags } from "@/lib/feature-flags";
+import { serverLogger } from "@/lib/logging/server";
 
 export async function createGlobalThreadAction() {
   const session = await auth();
@@ -34,6 +36,10 @@ export async function sendAssistantMessageAction(input: {
   try {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Unauthorized" };
+
+  if (!getFeatureFlags().aiAssistant) {
+    return { ok: false, error: "Assistant is temporarily unavailable." };
+  }
 
   const text = input.content.trim();
   if (!text) return { ok: false, error: "Message is empty" };
@@ -118,7 +124,7 @@ export async function sendAssistantMessageAction(input: {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "AI request failed";
-    console.error("[sendAssistantMessageAction]", err);
+    serverLogger.integration("ai", "assistant_reply_failed", "warning", {}, err);
     replyText = [
       "I couldn’t reach the AI service just now (network, API key, or provider error).",
       "",
@@ -165,7 +171,7 @@ export async function sendAssistantMessageAction(input: {
     content: replyText,
   };
   } catch (err) {
-    console.error("[sendAssistantMessageAction] fatal", err);
+    serverLogger.integration("ai", "assistant_message_fatal", "error", {}, err);
     const msg =
       err instanceof Error ? err.message : "Unexpected server error";
     return {

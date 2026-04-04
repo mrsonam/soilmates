@@ -12,6 +12,7 @@ import { CollectionPageActionsProvider } from "./collection-page-actions";
 import { AppRealtimeSync } from "./app-realtime-sync";
 import { OfflineBanner } from "@/components/offline/offline-banner";
 import { ConflictQueueStrip } from "@/components/offline/conflict-queue-strip";
+import { DeadLetterStrip } from "@/components/offline/dead-letter-strip";
 import { SyncQueueDebugPanel } from "@/components/offline/sync-queue-debug-panel";
 import { EnablePushPrompt } from "@/components/push/enable-push-prompt";
 
@@ -60,6 +61,7 @@ export function AppShell({
               />
               <OfflineBanner />
               <div className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8">
+                <DeadLetterStrip />
                 <ConflictQueueStrip />
                 {children}
               </div>

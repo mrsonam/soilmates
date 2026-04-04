@@ -5,7 +5,9 @@ export type SyncQueueStatus =
   | "syncing"
   | "synced"
   | "failed"
-  | "conflict";
+  | "conflict"
+  /** Too many failures; user can retry manually from the sync strip. */
+  | "dead_letter";
 
 export type QueueConflictState = "pending_user" | "resolved_discard";
 
@@ -20,6 +22,8 @@ export interface SyncQueueRecord {
   status: SyncQueueStatus;
   lastError: string | null;
   conflictState: QueueConflictState | null;
+  /** Set when status becomes `syncing` — used to detect stuck rows. */
+  syncingStartedAt?: number;
 }
 
 export interface SnapshotRecord {
@@ -34,7 +38,8 @@ export type ImageUploadQueueStatus =
   | "pending"
   | "uploading"
   | "failed"
-  | "synced";
+  | "synced"
+  | "dead_letter";
 
 /** Queued binary + metadata for replay when online */
 export interface QueuedImageUploadRecord {

@@ -7,6 +7,7 @@ import {
 import webpush from "web-push";
 import type { PushSubscription } from "web-push";
 import { prisma } from "@/lib/prisma";
+import { serverLogger } from "@/lib/logging/server";
 import { computeReminderDisplayStatus } from "@/lib/reminders/status";
 import { configureWebPush, isWebPushConfigured } from "@/lib/push/configure";
 import { PWA_APP_ICON, PWA_BADGE_ICON } from "@/lib/pwa/branding";
@@ -197,6 +198,13 @@ async function sendPushToUser(
         typeof err === "object" && err !== null && "statusCode" in err
           ? (err as { statusCode?: number }).statusCode
           : undefined;
+      serverLogger.integration(
+        "push",
+        "delivery_failed",
+        statusCode === 410 || statusCode === 404 ? "info" : "warning",
+        { subscriptionId: sub.id, statusCode },
+        err,
+      );
       if (statusCode === 410 || statusCode === 404) {
         await prisma.pushSubscription.update({
           where: { id: sub.id },

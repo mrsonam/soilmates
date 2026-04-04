@@ -1,3 +1,11 @@
+/**
+ * iOS standalone PWA / Safari `theme-color` — must match `app/globals.css`
+ * `:root` and `html.dark` `--surface` so the dynamic island / status area never
+ * shows a mismatched strip when the user picks dark mode while OS is light.
+ */
+export const PWA_THEME_COLOR_LIGHT = "#fbf9f6";
+export const PWA_THEME_COLOR_DARK = "#121411";
+
 /** Central paths for PWA + Web Push imagery (keep in sync with `public/icons/`). */
 export const PWA_APP_ICON_SVG = "/icons/soilmates-icon.svg";
 /** PNG — used for install manifest, OG, push, and clients that ignore SVG icons. */

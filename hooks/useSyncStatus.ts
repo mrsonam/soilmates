@@ -12,6 +12,7 @@ export function useSyncStatus() {
       pendingMutations: s.pendingMutations,
       pendingImages: s.pendingImages,
       conflictCount: s.conflictCount,
+      deadLetterCount: s.deadLetterCount,
       lastSyncAt: s.lastSyncAt,
       lastSyncMessage: s.lastSyncMessage,
       ready: s.ready,

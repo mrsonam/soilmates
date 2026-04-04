@@ -19,6 +19,7 @@ import { createDiagnosisInputSchema } from "./schemas";
 import { generatePlantDiagnosisVision } from "./provider";
 import { formatDiagnosisAssistantMessage } from "./format-assistant";
 import type { DiagnosisAiOutput } from "./schemas";
+import { getFeatureFlags } from "@/lib/feature-flags";
 
 export type CreatePlantDiagnosisResult =
   | {
@@ -34,6 +35,10 @@ export async function createPlantDiagnosisAction(
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false, error: "Unauthorized" };
+  }
+
+  if (!getFeatureFlags().aiDiagnosis) {
+    return { ok: false, error: "Plant check-in is temporarily unavailable." };
   }
 
   const parsed = createDiagnosisInputSchema.safeParse(raw);

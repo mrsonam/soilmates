@@ -63,6 +63,18 @@ html.dark body {
   color: var(--on-surface);
 }
 
+/**
+ * iOS PWA (standalone): `apple-mobile-web-app-status-bar-style: black-translucent`
+ * draws the status bar over the page; the visible “chrome” is this background.
+ * Setting it on `html` (not only `body`) fixes the light strip above content
+ * when `html.dark` is toggled independently of `prefers-color-scheme`.
+ */
+html {
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  background-color: var(--surface);
+}
+
 @theme inline {
   --color-surface: var(--surface);
   --color-surface-container-low: var(--surface-container-low);

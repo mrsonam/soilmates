@@ -9,6 +9,7 @@ import type { PushSubscription } from "web-push";
 import { z } from "zod";
 import { updateUserSettings } from "@/app/actions/settings";
 import { PWA_APP_ICON, PWA_BADGE_ICON } from "@/lib/pwa/branding";
+import { serverLogger } from "@/lib/logging/server";
 
 const subscriptionSchema = z.object({
   endpoint: z.string().min(1),
@@ -47,6 +48,7 @@ export async function registerPushSubscription(
   }
   const subscription = parsed.data;
 
+  try {
   await prisma.pushSubscription.upsert({
     where: { endpoint: subscription.endpoint },
     create: {
@@ -64,6 +66,10 @@ export async function registerPushSubscription(
       revokedAt: null,
     },
   });
+  } catch (e) {
+    serverLogger.integration("push", "register_subscription_failed", "error", {}, e);
+    return { ok: false, error: "Could not save this device for notifications." };
+  }
 
   return { ok: true };
 }

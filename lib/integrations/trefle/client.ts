@@ -1,4 +1,5 @@
 import type { TreflePaginationResponse, TrefleSearchPlant, TrefleSpeciesDetail } from "./types";
+import { withRetry } from "@/lib/retry";
 
 const TREFLE_BASE_URL = "https://trefle.io";
 
@@ -26,40 +27,52 @@ async function trefleFetch<T>(
   params: Record<string, string | number | undefined>,
   revalidate: number,
 ): Promise<T> {
-  const url = new URL(path, TREFLE_BASE_URL);
-  url.searchParams.set("token", getTrefleToken());
+  return withRetry(
+    async () => {
+      const url = new URL(path, TREFLE_BASE_URL);
+      url.searchParams.set("token", getTrefleToken());
 
-  for (const [key, value] of Object.entries(params)) {
-    if (value == null || value === "") continue;
-    url.searchParams.set(key, String(value));
-  }
+      for (const [key, value] of Object.entries(params)) {
+        if (value == null || value === "") continue;
+        url.searchParams.set(key, String(value));
+      }
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: { Accept: "application/json" },
-      next: { revalidate },
-      signal: AbortSignal.timeout(8000),
-    });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.name === "TimeoutError" || error.name === "AbortError")
-    ) {
-      throw new TrefleError("Trefle request timed out.", 504, true);
-    }
-    throw new TrefleError("Unable to reach Trefle.", 503, true);
-  }
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          headers: { Accept: "application/json" },
+          next: { revalidate },
+          signal: AbortSignal.timeout(8000),
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.name === "TimeoutError" || error.name === "AbortError")
+        ) {
+          throw new TrefleError("Trefle request timed out.", 504, true);
+        }
+        throw new TrefleError("Unable to reach Trefle.", 503, true);
+      }
 
-  if (!response.ok) {
-    throw new TrefleError(
-      `Trefle request failed with status ${response.status}.`,
-      response.status,
-      response.status >= 500 || response.status === 429,
-    );
-  }
+      if (!response.ok) {
+        throw new TrefleError(
+          `Trefle request failed with status ${response.status}.`,
+          response.status,
+          response.status >= 500 || response.status === 429,
+        );
+      }
 
-  return (await response.json()) as T;
+      return (await response.json()) as T;
+    },
+    {
+      maxAttempts: 3,
+      initialDelayMs: 400,
+      shouldRetry: (error, attempt) => {
+        if (attempt >= 3) return false;
+        return error instanceof TrefleError && error.retryable;
+      },
+    },
+  );
 }
 
 export function fetchPlantsSearch(query: string) {

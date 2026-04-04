@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { PlantDetailModel } from "@/lib/plants/plant-detail";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
@@ -19,10 +20,24 @@ import type { ReminderListItem } from "@/lib/reminders/queries";
 import { PlantRemindersSection } from "@/components/reminders/plant-reminders-section";
 import type { ActivityFeedItem } from "@/lib/activity/queries";
 import { PlantActivityPreview } from "@/components/activity/plant-activity-preview";
-import { PlantAssistantPanel } from "@/components/assistant/plant-assistant-panel";
 import type { DiagnosisHistoryItem } from "@/lib/diagnosis/queries";
 import { PlantCareStatusBanners } from "@/components/archive/plant-care-status-banners";
 import { PlantArchiveSection } from "@/components/archive/plant-archive-section";
+
+const PlantAssistantPanel = dynamic(
+  () =>
+    import("@/components/assistant/plant-assistant-panel").then((m) => ({
+      default: m.PlantAssistantPanel,
+    })),
+  {
+    loading: () => (
+      <PlantSectionPlaceholder
+        title="Assistant"
+        description="Opening your plant assistant…"
+      />
+    ),
+  },
+);
 
 type PlantDetailViewProps = {
   plant: PlantDetailModel;

@@ -9,6 +9,8 @@ import {
   extractTextFromChatContent,
   mergeConsecutiveSameRoleMessages,
 } from "./chat-content";
+import { withRetry } from "@/lib/retry";
+import { serverLogger } from "@/lib/logging/server";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -53,26 +55,50 @@ export async function generateAssistantReply(
   const messages = mergeConsecutiveSameRoleMessages(rawMessages);
 
   if (getNvidiaApiKey()) {
-    const res = await postNvidiaChatCompletion({
-      model: getNvidiaChatModel(),
-      messages,
-      temperature: 0.2,
-      top_p: 0.7,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      max_tokens: Number(process.env.NVIDIA_ASSISTANT_MAX_TOKENS) || 1200,
-      stream: false,
-    });
+    try {
+      const res = await withRetry(
+        async () => {
+          const r = await postNvidiaChatCompletion({
+            model: getNvidiaChatModel(),
+            messages,
+            temperature: 0.2,
+            top_p: 0.7,
+            frequency_penalty: 0,
+            presence_penalty: 0,
+            max_tokens: Number(process.env.NVIDIA_ASSISTANT_MAX_TOKENS) || 1200,
+            stream: false,
+          });
+          if (!r.ok) {
+            const errText = await r.text().catch(() => "");
+            const err = new Error(
+              `NVIDIA API error ${r.status}: ${errText.slice(0, 200)}`,
+            ) as Error & { httpStatus?: number };
+            err.httpStatus = r.status;
+            throw err;
+          }
+          return r;
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 500,
+          shouldRetry: (error, attempt) => {
+            if (attempt >= 3) return false;
+            const status = (error as Error & { httpStatus?: number }).httpStatus;
+            if (status != null && status < 500 && status !== 429) return false;
+            if (error instanceof Error && error.name === "TimeoutError") return true;
+            return status != null && (status >= 500 || status === 429);
+          },
+        },
+      );
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`NVIDIA API error ${res.status}: ${errText.slice(0, 200)}`);
+      const data = (await res.json()) as unknown;
+      const text = parseChatCompletionText(data);
+      if (text) return text;
+      throw new Error("Empty model response");
+    } catch (e) {
+      serverLogger.integration("ai", "assistant_completion_failed", "error", {}, e);
+      throw e instanceof Error ? e : new Error(String(e));
     }
-
-    const data = (await res.json()) as unknown;
-    const text = parseChatCompletionText(data);
-    if (text) return text;
-    throw new Error("Empty model response");
   }
 
   const preview =

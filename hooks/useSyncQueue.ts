@@ -25,6 +25,7 @@ export function useSyncQueue() {
       pendingMutations: counts.mutations,
       pendingImages: counts.images,
       conflictCount: counts.conflicts,
+      deadLetterCount: counts.deadLetters,
     });
   }, []);
 

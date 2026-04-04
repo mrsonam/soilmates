@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import {
   PWA_APP_ICON,
   PWA_APP_ICON_192,
+  PWA_THEME_COLOR_DARK,
+  PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -16,8 +18,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     display_override: ["standalone", "browser"],
     orientation: "any",
-    background_color: "#fbf9f6",
-    theme_color: "#516447",
+    /** Install splash; runtime theme-color is set by layout + ThemeProvider. */
+    background_color: PWA_THEME_COLOR_LIGHT,
+    /** Dark-compatible top chrome; light surfaces still work via runtime meta. */
+    theme_color: PWA_THEME_COLOR_DARK,
     categories: ["lifestyle", "productivity"],
     icons: [
       {

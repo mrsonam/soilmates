@@ -53,6 +53,46 @@ export async function listPendingQueue(): Promise<SyncQueueRecord[]> {
     .sortBy("createdAt");
 }
 
+/** Moves failed and dead_letter rows back to pending for another sync pass. */
+export async function resetFailedAndDeadLetterForRetry(): Promise<number> {
+  const db = getOfflineDb();
+  if (!db) return 0;
+  let n = 0;
+  const failed = await db.syncQueue.where("status").equals("failed").toArray();
+  for (const r of failed) {
+    await db.syncQueue.update(r.localId, {
+      status: "pending",
+      lastError: null,
+      syncingStartedAt: undefined,
+    });
+    n += 1;
+  }
+  const dead = await db.syncQueue.where("status").equals("dead_letter").toArray();
+  for (const r of dead) {
+    await db.syncQueue.update(r.localId, {
+      status: "pending",
+      retryCount: 0,
+      lastError: null,
+      syncingStartedAt: undefined,
+    });
+    n += 1;
+  }
+
+  const deadImages = await db.imageUploadQueue
+    .where("status")
+    .equals("dead_letter")
+    .toArray();
+  for (const r of deadImages) {
+    await db.imageUploadQueue.update(r.localId, {
+      status: "pending",
+      retryCount: 0,
+      lastError: null,
+    });
+    n += 1;
+  }
+  return n;
+}
+
 export async function updateQueueRecord(
   localId: string,
   patch: Partial<SyncQueueRecord>,
@@ -75,6 +115,12 @@ export async function getPendingMutationCount(): Promise<number> {
   const failed = await db.syncQueue.where("status").equals("failed").count();
   const syncing = await db.syncQueue.where("status").equals("syncing").count();
   return pending + failed + syncing;
+}
+
+export async function getDeadLetterMutationCount(): Promise<number> {
+  const db = getOfflineDb();
+  if (!db) return 0;
+  return db.syncQueue.where("status").equals("dead_letter").count();
 }
 
 export async function getConflictMutationCount(): Promise<number> {
