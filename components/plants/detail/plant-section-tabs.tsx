@@ -22,14 +22,21 @@ const TABS: { id: PlantDetailTabId; label: string; icon?: "sparkles" }[] = [
 type PlantSectionTabsProps = {
   active: PlantDetailTabId;
   onChange: (id: PlantDetailTabId) => void;
+  /** True while a tab content transition is in flight (React concurrent). */
+  transitioning?: boolean;
 };
 
-export function PlantSectionTabs({ active, onChange }: PlantSectionTabsProps) {
+export function PlantSectionTabs({
+  active,
+  onChange,
+  transitioning = false,
+}: PlantSectionTabsProps) {
   return (
     <div
       className="-mx-1 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Plant sections"
+      aria-busy={transitioning}
     >
       <div className="flex min-w-min gap-1 border-b border-outline-variant/10 px-1">
         {TABS.map((t) => {

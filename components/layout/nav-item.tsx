@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 type NavItemProps = {
@@ -14,28 +14,26 @@ type NavItemProps = {
   badgeCount?: number;
 };
 
-export function NavItem({
-  href,
+function NavItemInner({
   label,
   icon: Icon,
   active,
   className = "",
-  onNavigate,
   badgeCount = 0,
-}: NavItemProps) {
+}: Omit<NavItemProps, "href" | "onNavigate">) {
+  const { pending } = useLinkStatus();
   const showBadge = badgeCount > 0;
   return (
-    <Link
-      href={href}
-      onClick={onNavigate}
+    <span
       className={[
-        "focus-ring-premium group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-[color,background-color,box-shadow,transform] duration-300 ease-out",
+        "group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-[color,background-color,box-shadow,transform,opacity] duration-300 ease-out",
         active
           ? "bg-surface-container-lowest text-primary shadow-(--shadow-ambient) ring-1 ring-primary/[0.08]"
           : "text-on-surface-variant hover:bg-surface-container-high/80 hover:text-on-surface active:scale-[0.99]",
+        pending ? "opacity-[0.88] ring-1 ring-primary/15" : "",
         className,
       ].join(" ")}
-      aria-current={active ? "page" : undefined}
+      aria-busy={pending}
     >
       <Icon
         className={[
@@ -56,6 +54,33 @@ export function NavItem({
           </span>
         ) : null}
       </span>
+    </span>
+  );
+}
+
+export function NavItem({
+  href,
+  label,
+  icon,
+  active,
+  className = "",
+  onNavigate,
+  badgeCount = 0,
+}: NavItemProps) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className="focus-ring-premium block rounded-2xl outline-none"
+      aria-current={active ? "page" : undefined}
+    >
+      <NavItemInner
+        label={label}
+        icon={icon}
+        active={active}
+        className={className}
+        badgeCount={badgeCount}
+      />
     </Link>
   );
 }

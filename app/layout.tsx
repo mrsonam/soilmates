@@ -8,6 +8,8 @@ import {
   PWA_APP_ICON_192,
   PWA_APP_ICON_SVG,
   PWA_APPLE_TOUCH_ICON,
+  PWA_THEME_COLOR_DARK,
+  PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
 import { getThemeInitScript } from "@/lib/theme/theme-init-script";
 
@@ -58,10 +60,16 @@ export const metadata: Metadata = {
     shortcut: PWA_APP_ICON_SVG,
     apple: [{ url: PWA_APPLE_TOUCH_ICON, sizes: "180x180", type: "image/png" }],
   },
+  /**
+   * Do not set `statusBarStyle` here: a static value injects
+   * `apple-mobile-web-app-status-bar-style` before client JS, and WebKit often
+   * honors the first tag — `default` forces a light status strip in standalone
+   * mode. Runtime theme (`theme-init-script` + ThemeProvider) sets
+   * `black-translucent` in dark mode and `default` in light mode.
+   */
   appleWebApp: {
     capable: true,
     title: "Soil Mates",
-    statusBarStyle: "default",
   },
   formatDetection: {
     telephone: false,
@@ -96,10 +104,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   /**
-   * Omit `themeColor` here so Next does not inject media-query metas that follow the OS
-   * while the app can be dark with a light OS. `theme-init-script` + `ThemeProvider`
-   * set `theme-color` and `apple-mobile-web-app-status-bar-style` to match `html.dark`.
+   * OS-based fallbacks for browser tabs / first paint. Installed iOS PWA uses the
+   * last non-media `theme-color` in the document; `theme-init-script` appends one
+   * after these so in-app dark + light OS still matches `--surface`.
    */
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: PWA_THEME_COLOR_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: PWA_THEME_COLOR_DARK },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -115,7 +127,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${manrope.variable} h-full antialiased`}
+      className={`${inter.variable} ${manrope.variable} h-full min-h-dvh bg-surface antialiased`}
     >
       <body className="flex min-h-dvh flex-col bg-surface text-on-surface">
         <Script

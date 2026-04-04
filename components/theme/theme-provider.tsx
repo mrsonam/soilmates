@@ -82,14 +82,16 @@ export function ThemeProvider({
       }
       meta.content = content;
 
-      let statusMeta = document.getElementById(
-        "soilmates-apple-status-bar",
+      let statusMeta = document.querySelector(
+        'meta[name="apple-mobile-web-app-status-bar-style"]',
       ) as HTMLMetaElement | null;
       if (!statusMeta) {
         statusMeta = document.createElement("meta");
         statusMeta.id = "soilmates-apple-status-bar";
         statusMeta.setAttribute("name", "apple-mobile-web-app-status-bar-style");
         document.head.appendChild(statusMeta);
+      } else if (!statusMeta.id) {
+        statusMeta.id = "soilmates-apple-status-bar";
       }
       /** Dark: translucent bar so `html` `--surface` fills the notch; light: separate light bar. */
       statusMeta.setAttribute("content", dark ? "black-translucent" : "default");

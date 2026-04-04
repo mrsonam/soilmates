@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   acceptCollectionInvite,
   declineCollectionInvite,
@@ -27,6 +27,7 @@ export function InvitationCard({ item }: { item: InvitationCardData }) {
   const router = useRouter();
   const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [navPending, startNavTransition] = useTransition();
 
   const inviter =
     item.invitedBy.name?.trim()?.split(/\s+/)[0] ??
@@ -41,8 +42,10 @@ export function InvitationCard({ item }: { item: InvitationCardData }) {
       setError(r.error);
       return;
     }
-    router.push(`/collections/${r.collectionSlug}`);
-    router.refresh();
+    startNavTransition(() => {
+      router.push(`/collections/${r.collectionSlug}`);
+      router.refresh();
+    });
   }
 
   async function onDecline() {
@@ -80,15 +83,15 @@ export function InvitationCard({ item }: { item: InvitationCardData }) {
       <div className="mt-6 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={busy !== null}
+          disabled={busy !== null || navPending}
           onClick={onAccept}
           className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-50"
         >
-          {busy === "accept" ? "Joining…" : "Accept"}
+          {busy === "accept" || navPending ? "Joining…" : "Accept"}
         </button>
         <button
           type="button"
-          disabled={busy !== null}
+          disabled={busy !== null || navPending}
           onClick={onDecline}
           className="rounded-2xl border border-outline-variant/40 px-5 py-2.5 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-high disabled:opacity-50"
         >

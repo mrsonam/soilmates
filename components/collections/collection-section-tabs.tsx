@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -68,6 +68,49 @@ export function activeCollectionSectionTab(
   return "overview";
 }
 
+type CollectionTabLinkProps = {
+  href: string;
+  label: string;
+  Icon: typeof LayoutDashboard;
+  selected: boolean;
+};
+
+function CollectionTabLinkInner({
+  label,
+  Icon,
+  selected,
+}: Omit<CollectionTabLinkProps, "href">) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      className={[
+        "relative flex min-w-0 shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-[color,border-color,opacity] duration-200 ease-out",
+        selected
+          ? "-mb-px border-primary font-semibold text-primary"
+          : "border-transparent text-on-surface-variant hover:text-on-surface",
+        pending ? "opacity-70" : "",
+      ].join(" ")}
+      aria-busy={pending}
+    >
+      <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+      {label}
+    </span>
+  );
+}
+
+function CollectionTabLink({ href, label, Icon, selected }: CollectionTabLinkProps) {
+  return (
+    <Link
+      href={href}
+      role="tab"
+      aria-selected={selected}
+      className="focus-ring-premium shrink-0"
+    >
+      <CollectionTabLinkInner label={label} Icon={Icon} selected={selected} />
+    </Link>
+  );
+}
+
 type CollectionSectionTabsProps = {
   collectionSlug: string;
   className?: string;
@@ -83,7 +126,7 @@ export function CollectionSectionTabs({
   return (
     <div
       className={[
-        "flex gap-1 overflow-x-auto border-b border-outline-variant/[0.1] pb-px",
+        "flex gap-1 overflow-x-auto border-b border-outline-variant/10 pb-px",
         className,
       ].join(" ")}
       role="tablist"
@@ -93,21 +136,13 @@ export function CollectionSectionTabs({
         const Icon = t.Icon;
         const selected = active === t.id;
         return (
-          <Link
+          <CollectionTabLink
             key={t.id}
             href={t.href(collectionSlug)}
-            role="tab"
-            aria-selected={selected}
-            className={[
-              "focus-ring-premium flex min-w-0 shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-[color,border-color] duration-200 ease-out",
-              selected
-                ? "-mb-px border-primary font-semibold text-primary"
-                : "border-transparent text-on-surface-variant hover:text-on-surface",
-            ].join(" ")}
-          >
-            <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-            {t.label}
-          </Link>
+            label={t.label}
+            Icon={Icon}
+            selected={selected}
+          />
         );
       })}
     </div>

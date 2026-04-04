@@ -20,8 +20,8 @@ export function getThemeInitScript(): string {
     'var tc=document.getElementById("soilmates-theme-color");',
     'if(!tc){tc=document.createElement("meta");tc.id="soilmates-theme-color";tc.name="theme-color";document.head.appendChild(tc)}',
     'tc.setAttribute("content",dm?D:L);',
-    'var sb=document.getElementById("soilmates-apple-status-bar");',
-    'if(!sb){sb=document.createElement("meta");sb.id="soilmates-apple-status-bar";sb.setAttribute("name","apple-mobile-web-app-status-bar-style");document.head.appendChild(sb)}',
+    'var sb=document.querySelector(\'meta[name="apple-mobile-web-app-status-bar-style"]\');',
+    'if(!sb){sb=document.createElement("meta");sb.id="soilmates-apple-status-bar";sb.setAttribute("name","apple-mobile-web-app-status-bar-style");document.head.appendChild(sb)}else if(!sb.id)sb.id="soilmates-apple-status-bar";',
     'sb.setAttribute("content",dm?"black-translucent":"default");',
     "}();",
   ].join("");

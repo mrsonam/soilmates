@@ -68,9 +68,12 @@ html.dark body {
  * draws the status bar over the page; the visible “chrome” is this background.
  * Setting it on `html` (not only `body`) fixes the light strip above content
  * when `html.dark` is toggled independently of `prefers-color-scheme`.
+ * Use `100dvh` so the root fill matches the viewport in standalone mode (not
+ * only a percentage of an unset parent height).
  */
 html {
   min-height: 100%;
+  min-height: 100dvh;
   min-height: -webkit-fill-available;
   background-color: var(--surface);
 }
@@ -95,7 +98,10 @@ html {
 }
 
 body {
-  background: var(--surface);
+  min-height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  background-color: var(--surface);
   color: var(--on-surface);
   font-family: var(--font-inter), system-ui, sans-serif;
 }

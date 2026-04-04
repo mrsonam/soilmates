@@ -1,8 +1,62 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { bottomNav, isBottomNavActive } from "@/lib/layout/nav-config";
+
+type BottomNavItemProps = {
+  href: string;
+  label: string;
+  icon: (typeof bottomNav)[number]["icon"];
+  active: boolean;
+};
+
+function BottomNavItemInner({
+  label,
+  icon: Icon,
+  active,
+}: Omit<BottomNavItemProps, "href">) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      className={[
+        "flex min-h-[3.1rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition-[color,background-color,transform,opacity] duration-300 ease-out active:scale-[0.97] sm:min-w-12 sm:px-2",
+        active
+          ? "bg-primary/9 text-primary"
+          : "text-on-surface-variant hover:bg-surface-container-high/80 hover:text-on-surface",
+        pending ? "opacity-75" : "",
+      ].join(" ")}
+      aria-busy={pending}
+    >
+      <Icon
+        className="size-[1.15rem] shrink-0 sm:size-5"
+        strokeWidth={active ? 2 : 1.75}
+        aria-hidden
+      />
+      <span
+        className={[
+          "max-w-full truncate text-[0.6rem] font-medium leading-tight sm:text-[0.65rem]",
+          active ? "text-primary" : "text-on-surface-variant",
+        ].join(" ")}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
+function BottomNavItem({ href, label, icon, active }: BottomNavItemProps) {
+  const Icon = icon;
+  return (
+    <Link
+      href={href}
+      className="focus-ring-premium flex min-w-0 flex-1 flex-col items-stretch justify-center"
+      aria-current={active ? "page" : undefined}
+    >
+      <BottomNavItemInner label={label} icon={Icon} active={active} />
+    </Link>
+  );
+}
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -18,30 +72,12 @@ export function BottomNav() {
           const Icon = item.icon;
           return (
             <li key={item.href} className="min-w-0 flex-1">
-              <Link
+              <BottomNavItem
                 href={item.href}
-                className={[
-                  "focus-ring-premium flex min-h-[3.1rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition-[color,background-color,transform] duration-300 ease-out active:scale-[0.97] sm:min-w-12 sm:px-2",
-                  active
-                    ? "text-primary bg-primary/9"
-                    : "text-on-surface-variant hover:bg-surface-container-high/80 hover:text-on-surface",
-                ].join(" ")}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon
-                  className="size-[1.15rem] shrink-0 sm:size-5"
-                  strokeWidth={active ? 2 : 1.75}
-                  aria-hidden
-                />
-                <span
-                  className={[
-                    "max-w-full truncate text-[0.6rem] font-medium leading-tight sm:text-[0.65rem]",
-                    active ? "text-primary" : "text-on-surface-variant",
-                  ].join(" ")}
-                >
-                  {item.label}
-                </span>
-              </Link>
+                label={item.label}
+                icon={Icon}
+                active={active}
+              />
             </li>
           );
         })}

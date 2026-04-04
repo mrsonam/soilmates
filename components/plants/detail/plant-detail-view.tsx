@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { InlineLoader } from "@/components/loading/inline-loader";
 import type { PlantDetailModel } from "@/lib/plants/plant-detail";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
 import type { PlantGalleryImage } from "@/lib/plants/plant-images";
@@ -77,6 +78,17 @@ export function PlantDetailView({
   diagnosisHistory,
 }: PlantDetailViewProps) {
   const [tab, setTab] = useState<PlantDetailTabId>(initialTab ?? "overview");
+  const [tabTransitionPending, startTabTransition] = useTransition();
+
+  useEffect(() => {
+    setTab(initialTab ?? "overview");
+  }, [initialTab]);
+
+  const handleTabChange = (id: PlantDetailTabId) => {
+    startTabTransition(() => {
+      setTab(id);
+    });
+  };
 
   const careFrozen =
     plant.archivedAt != null || plant.collectionArchivedAt != null;
@@ -125,9 +137,24 @@ export function PlantDetailView({
       </section>
 
       <div className="rounded-3xl bg-surface-container-lowest/60 p-4 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">
-        <PlantSectionTabs active={tab} onChange={setTab} />
+        <PlantSectionTabs
+          active={tab}
+          onChange={handleTabChange}
+          transitioning={tabTransitionPending}
+        />
 
-        <div className="mt-6 min-h-[12rem]" role="tabpanel">
+        <div className="relative mt-6 min-h-[12rem]" role="tabpanel">
+          {tabTransitionPending ? (
+            <div className="pointer-events-none absolute right-0 top-0 z-[1] flex items-center gap-2 rounded-full bg-surface-container-high/90 px-3 py-1.5 shadow-sm ring-1 ring-outline-variant/10">
+              <InlineLoader label="Updating…" />
+            </div>
+          ) : null}
+          <div
+            className={[
+              tabTransitionPending ? "opacity-[0.92]" : "",
+              "transition-opacity duration-200",
+            ].join(" ")}
+          >
           {tab === "overview" && (
             <PlantOverviewPanel
               plant={plant}
@@ -186,6 +213,7 @@ export function PlantDetailView({
               description="Household updates and comments tied to this plant will show up here."
             />
           )}
+          </div>
         </div>
       </div>
 

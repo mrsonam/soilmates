@@ -18,9 +18,9 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     display_override: ["standalone", "browser"],
     orientation: "any",
-    /** Install splash; runtime theme-color is set by layout + ThemeProvider. */
+    /** Install / splash screen; first paint theme is overridden at runtime. */
     background_color: PWA_THEME_COLOR_LIGHT,
-    /** Dark-compatible top chrome; light surfaces still work via runtime meta. */
+    /** Matches dark `--surface`; iOS uses manifest theme until runtime `theme-color` applies. */
     theme_color: PWA_THEME_COLOR_DARK,
     categories: ["lifestyle", "productivity"],
     icons: [
