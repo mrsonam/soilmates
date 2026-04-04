@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -14,6 +15,7 @@ import {
   PWA_THEME_COLOR_DARK,
   PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
+import { THEME_COOKIE_NAME } from "@/lib/theme/theme-cookie";
 
 type ThemeContextValue = {
   theme: UserTheme;
@@ -47,13 +49,20 @@ export function ThemeProvider({
     setThemeState(t);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     function apply() {
       const dark =
         theme === "dark" || (theme === "system" && mq.matches);
       document.documentElement.classList.toggle("dark", dark);
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
+
+      const maxAge = 60 * 60 * 24 * 365;
+      const secure =
+        typeof window !== "undefined" && window.location.protocol === "https:"
+          ? "; Secure"
+          : "";
+      document.cookie = `${THEME_COOKIE_NAME}=${encodeURIComponent(theme)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 
       /**
        * iOS standalone PWA uses the last `theme-color` meta for the top chrome.

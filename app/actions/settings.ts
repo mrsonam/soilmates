@@ -1,10 +1,12 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { CollectionMemberStatus } from "@prisma/client";
 import { userSettingsUpdateSchema } from "@/lib/settings/schemas";
+import { THEME_COOKIE_NAME } from "@/lib/theme/theme-cookie";
 
 export type UpdateUserSettingsInput = Record<string, unknown>;
 
@@ -79,6 +81,16 @@ export async function updateUserSettings(
     where: { id: userId },
     data,
   });
+
+  if (input.theme !== undefined) {
+    const cookieStore = await cookies();
+    cookieStore.set(THEME_COOKIE_NAME, input.theme, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
 
   if (input.pushNotificationsEnabled === false) {
     await prisma.pushSubscription.updateMany({

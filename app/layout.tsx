@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Manrope } from "next/font/google";
+import Script from "next/script";
 import { Providers } from "./providers";
 import "./globals.css";
 import {
@@ -7,9 +8,8 @@ import {
   PWA_APP_ICON_192,
   PWA_APP_ICON_SVG,
   PWA_APPLE_TOUCH_ICON,
-  PWA_THEME_COLOR_DARK,
-  PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
+import { getThemeInitScript } from "@/lib/theme/theme-init-script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -96,14 +96,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   /**
-   * Shell background colors (not primary green) — matches `--surface` in globals.css.
-   * In-app theme overrides via `ThemeProvider` (meta appended last) when user chooses
-   * dark/light independently of the OS.
+   * Omit `themeColor` here so Next does not inject media-query metas that follow the OS
+   * while the app can be dark with a light OS. `theme-init-script` + `ThemeProvider`
+   * set `theme-color` and `apple-mobile-web-app-status-bar-style` to match `html.dark`.
    */
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: PWA_THEME_COLOR_LIGHT },
-    { media: "(prefers-color-scheme: dark)", color: PWA_THEME_COLOR_DARK },
-  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -122,6 +118,11 @@ export default function RootLayout({
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="flex min-h-dvh flex-col bg-surface text-on-surface">
+        <Script
+          id="soilmates-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: getThemeInitScript() }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>
