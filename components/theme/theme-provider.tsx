@@ -78,9 +78,10 @@ export function ThemeProvider({
         meta = document.createElement("meta");
         meta.id = "soilmates-theme-color";
         meta.name = "theme-color";
-        document.head.appendChild(meta);
       }
       meta.content = content;
+      /** Last `theme-color` in `<head>` wins on iOS standalone; keep ours last. */
+      document.head.appendChild(meta);
 
       let statusMeta = document.querySelector(
         'meta[name="apple-mobile-web-app-status-bar-style"]',
@@ -89,12 +90,12 @@ export function ThemeProvider({
         statusMeta = document.createElement("meta");
         statusMeta.id = "soilmates-apple-status-bar";
         statusMeta.setAttribute("name", "apple-mobile-web-app-status-bar-style");
-        document.head.appendChild(statusMeta);
       } else if (!statusMeta.id) {
         statusMeta.id = "soilmates-apple-status-bar";
       }
       /** Dark: translucent bar so `html` `--surface` fills the notch; light: separate light bar. */
       statusMeta.setAttribute("content", dark ? "black-translucent" : "default");
+      document.head.appendChild(statusMeta);
     }
     apply();
     mq.addEventListener("change", apply);

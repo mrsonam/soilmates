@@ -8,8 +8,6 @@ import {
   PWA_APP_ICON_192,
   PWA_APP_ICON_SVG,
   PWA_APPLE_TOUCH_ICON,
-  PWA_THEME_COLOR_DARK,
-  PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
 import { getThemeInitScript } from "@/lib/theme/theme-init-script";
 
@@ -104,14 +102,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   /**
-   * OS-based fallbacks for browser tabs / first paint. Installed iOS PWA uses the
-   * last non-media `theme-color` in the document; `theme-init-script` appends one
-   * after these so in-app dark + light OS still matches `--surface`.
+   * Omit `themeColor` here: Next injects media-query metas that follow the OS.
+   * On iOS standalone, a light OS + in-app dark left Safari painting a light
+   * strip around the Dynamic Island. Only `theme-init-script` + ThemeProvider
+   * set a single non-media `theme-color` (moved to end of `<head>`).
    */
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: PWA_THEME_COLOR_LIGHT },
-    { media: "(prefers-color-scheme: dark)", color: PWA_THEME_COLOR_DARK },
-  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Droplets, Leaf, Mail, Camera } from "lucide-react";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { LoginThemeGate } from "./login-theme-gate";
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1525498128493-380d1990a112?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -38,21 +39,23 @@ type LoginScreenProps = {
 
 export function LoginScreen({ authError }: LoginScreenProps) {
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [emailHint, setEmailHint] = useState(false);
+  const [googleSignInError, setGoogleSignInError] = useState(false);
 
   async function signInWithGoogle() {
+    setGoogleSignInError(false);
     setGoogleLoading(true);
     try {
       await signIn("google", { callbackUrl: "/" });
     } catch (e) {
       console.error(e);
       setGoogleLoading(false);
-      setEmailHint(true);
+      setGoogleSignInError(true);
     }
   }
 
   return (
     <div className="flex min-h-screen flex-1 pt-[env(safe-area-inset-top)]">
+      <LoginThemeGate />
       {/* Left — hero (DESIGN: glass testimonial, gradient soul on imagery) */}
       <div className="relative hidden w-1/2 overflow-hidden rounded-r-4xl lg:block">
         <Image
@@ -117,14 +120,12 @@ export function LoginScreen({ authError }: LoginScreenProps) {
             </p>
           </header>
 
-          {(authError || emailHint) && (
+          {(authError || googleSignInError) && (
             <p
               className="rounded-2xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant"
               role="alert"
             >
-              {authError
-                ? "Something went wrong signing in. Try again."
-                : "Check .env: NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET must be set for Google sign-in."}
+              Something went wrong signing in. Try again.
             </p>
           )}
 
@@ -149,8 +150,8 @@ export function LoginScreen({ authError }: LoginScreenProps) {
 
             <button
               type="button"
-              onClick={() => setEmailHint(true)}
-              className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-on-surface text-[0.9375rem] font-medium text-surface transition hover:bg-on-surface/90"
+              disabled
+              className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-2xl bg-on-surface/75 text-[0.9375rem] font-medium text-surface opacity-70"
             >
               <Mail className="size-5 shrink-0 opacity-90" strokeWidth={1.75} />
               Sign up with Email
