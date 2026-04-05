@@ -3,7 +3,7 @@
 import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCollectionIdForActiveMember } from "@/lib/collections/access";
@@ -91,32 +91,22 @@ export async function createPlantAction(
     return { error: "That area doesn’t belong to this collection." };
   }
 
-  let normalizedReference = null;
-  if (parsed.data.referenceIdentifier) {
-    try {
-      normalizedReference = await getPlantReference(parsed.data.referenceIdentifier);
-    } catch (error) {
-      console.error(error);
-      return { error: "Unable to load plant reference right now." };
-    }
-  }
+  const referenceIdentifier = (parsed.data.referenceIdentifier ?? "").trim();
+  const hasReferenceId = referenceIdentifier.length > 0;
 
   const plantId = randomUUID();
   let slug = "";
 
+  let coverPayload: { buffer: ArrayBuffer; mime: string } | null = null;
+  if (coverFile) {
+    coverPayload = {
+      buffer: await coverFile.arrayBuffer(),
+      mime: coverFile.type.toLowerCase() || "image/jpeg",
+    };
+  }
+
   try {
     await prisma.$transaction(async (tx) => {
-      let referenceCatalogId: string | null = null;
-      let referenceSnapshot: Prisma.InputJsonValue | undefined;
-
-      if (normalizedReference) {
-        const storedReference = await upsertPlantReference(tx, normalizedReference);
-        referenceCatalogId = storedReference.id;
-        referenceSnapshot = createPlantReferenceSnapshot(
-          normalizedReference,
-        ) as Prisma.InputJsonValue;
-      }
-
       slug = await resolveUniquePlantSlug(
         collectionId,
         parsed.data.nickname,
@@ -130,12 +120,11 @@ export async function createPlantAction(
           slug,
           nickname: parsed.data.nickname.trim(),
           referenceCommonName:
-            normalizedReference?.commonName ??
-            normalizedReference?.scientificName ??
-            parsed.data.referenceCommonName ??
+            parsed.data.referenceCommonName?.trim() ||
+            parsed.data.nickname.trim() ||
             null,
-          referenceCatalogId,
-          referenceSnapshot,
+          referenceCatalogId: null,
+          referenceSnapshot: undefined,
           plantType: parsed.data.plantType ?? null,
           lifeStage: parsed.data.lifeStage,
           healthStatus: parsed.data.healthStatus,
@@ -155,51 +144,90 @@ export async function createPlantAction(
     return { error: "Could not create plant. Try again." };
   }
 
-  try {
-    const areaRow = await prisma.area.findFirst({
-      where: { id: parsed.data.areaId, collectionId },
-      select: { name: true },
-    });
-    const who = await getActorLabel(session.user.id);
-    await createActivityEvent({
-      collectionId,
-      plantId,
-      actorUserId: session.user.id,
-      eventType: ActivityEventTypes.plantAdded,
-      summary: `${who} added ${parsed.data.nickname.trim()} to ${areaRow?.name ?? "an area"}`,
-      payload: {
-        plantSlug: slug,
-        nickname: parsed.data.nickname.trim(),
-        areaName: areaRow?.name ?? null,
-      },
-      collectionSlug,
-      plantSlug: slug,
-    });
-  } catch (e) {
-    console.error("activity event", e);
-  }
+  const userId = session.user.id;
+  const nickname = parsed.data.nickname.trim();
+  const areaId = parsed.data.areaId;
 
-  if (coverFile) {
-    const coverResult = await attachCoverImageForNewPlant({
-      userId: session.user.id,
-      collectionId,
-      plantId,
-      file: coverFile,
-    });
-    if (!coverResult.ok) {
-      try {
-        await prisma.plant.delete({ where: { id: plantId } });
-      } catch (delErr) {
-        console.error(delErr);
+  after(async () => {
+    try {
+      if (hasReferenceId) {
+        try {
+          const normalizedReference =
+            await getPlantReference(referenceIdentifier);
+          await prisma.$transaction(async (tx) => {
+            const storedReference = await upsertPlantReference(
+              tx,
+              normalizedReference,
+            );
+            await tx.plant.update({
+              where: { id: plantId },
+              data: {
+                referenceCatalogId: storedReference.id,
+                referenceSnapshot: createPlantReferenceSnapshot(
+                  normalizedReference,
+                ) as Prisma.InputJsonValue,
+                referenceCommonName:
+                  normalizedReference?.commonName ??
+                  normalizedReference?.scientificName ??
+                  parsed.data.referenceCommonName?.trim() ??
+                  nickname ??
+                  null,
+              },
+            });
+          });
+        } catch (error) {
+          console.error("deferred plant reference", error);
+        }
       }
-      return { error: coverResult.error };
-    }
-  }
 
-  revalidatePath(`/collections/${collectionSlug}`);
-  revalidatePath(`/collections/${collectionSlug}/plants`);
-  revalidatePath(`/collections/${collectionSlug}/plants/${slug}`);
-  revalidatePath(`/collections/${collectionSlug}/plants/${slug}/photos`);
-  revalidatePath("/plants");
-  redirect(`/collections/${collectionSlug}/plants/${slug}`);
+      const areaRow = await prisma.area.findFirst({
+        where: { id: areaId, collectionId },
+        select: { name: true },
+      });
+      const who = await getActorLabel(userId);
+      await createActivityEvent({
+        collectionId,
+        plantId,
+        actorUserId: userId,
+        eventType: ActivityEventTypes.plantAdded,
+        summary: `${who} added ${nickname} to ${areaRow?.name ?? "an area"}`,
+        payload: {
+          plantSlug: slug,
+          nickname,
+          areaName: areaRow?.name ?? null,
+        },
+        collectionSlug,
+        plantSlug: slug,
+      });
+
+      if (coverPayload) {
+        const file = new File([coverPayload.buffer], "cover", {
+          type: coverPayload.mime,
+        });
+        const coverResult = await attachCoverImageForNewPlant({
+          userId,
+          collectionId,
+          plantId,
+          file,
+        });
+        if (!coverResult.ok) {
+          console.error("plant cover attach", coverResult.error);
+        }
+      }
+
+      revalidatePath(`/collections/${collectionSlug}`);
+      revalidatePath(`/collections/${collectionSlug}/plants`);
+      revalidatePath(`/collections/${collectionSlug}/plants/${slug}`);
+      revalidatePath(`/collections/${collectionSlug}/plants/${slug}/photos`);
+      revalidatePath("/plants");
+    } catch (e) {
+      console.error("createPlantAction after()", e);
+    }
+  });
+
+  return {
+    success: true,
+    slug,
+    collectionSlug,
+  };
 }

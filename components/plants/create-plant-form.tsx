@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Camera,
   ChevronRight,
@@ -138,6 +139,7 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
         ? props.placementAreasByCollectionSlug[selectedCollectionSlug] ?? []
         : [];
 
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     createPlantAction,
     createPlantFormInitialState,
@@ -166,6 +168,15 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
       else setSelectedAreaId("");
     }
   }, [props, selectedCollectionSlug]);
+
+  useEffect(() => {
+    if (state.success && state.slug && state.collectionSlug) {
+      router.push(
+        `/collections/${state.collectionSlug}/plants/${state.slug}`,
+      );
+      router.refresh();
+    }
+  }, [state.success, state.slug, state.collectionSlug, router]);
 
   const plantsHref = isGlobal
     ? "/plants"

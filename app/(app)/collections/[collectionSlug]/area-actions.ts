@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCollectionIdForActiveMember } from "@/lib/collections/access";
@@ -104,42 +105,60 @@ export async function createAreaAction(
     return { error: "Could not create area. Try again." };
   }
 
-  if (coverFile && coverFile.size > 0 && newAreaId) {
-    const up = await setAreaCoverFromFile(
-      session.user.id,
-      collectionSlug,
-      newAreaId,
-      coverFile,
-    );
-    if (!up.ok) {
-      try {
-        await prisma.area.delete({ where: { id: newAreaId } });
-      } catch {
-        /* ignore */
-      }
-      return { error: up.error };
-    }
+  const areaIdForAfter = newAreaId;
+  const areaSlugForAfter = newAreaSlug;
+  const areaName = parsed.data.name.trim();
+  const userId = session.user.id;
+
+  let coverPayload: { buffer: ArrayBuffer; mime: string } | null = null;
+  if (coverFile && coverFile.size > 0 && areaIdForAfter) {
+    coverPayload = {
+      buffer: await coverFile.arrayBuffer(),
+      mime: coverFile.type.toLowerCase() || "image/jpeg",
+    };
   }
 
-  revalidateCollection(collectionSlug);
-  if (newAreaSlug) {
-    revalidateArea(collectionSlug, newAreaSlug);
-  }
-  if (newAreaId) {
+  after(async () => {
     try {
-      const who = await getActorLabel(session.user.id);
-      await createActivityEvent({
-        collectionId,
-        actorUserId: session.user.id,
-        eventType: ActivityEventTypes.areaCreated,
-        summary: `${who} added ${parsed.data.name.trim()} as an area`,
-        payload: { areaName: parsed.data.name.trim() },
-        collectionSlug,
-      });
+      if (coverPayload && areaIdForAfter) {
+        const file = new File([coverPayload.buffer], "cover", {
+          type: coverPayload.mime,
+        });
+        const up = await setAreaCoverFromFile(
+          userId,
+          collectionSlug,
+          areaIdForAfter,
+          file,
+        );
+        if (!up.ok) {
+          console.error("area cover upload", up.error);
+        }
+      }
+
+      revalidateCollection(collectionSlug);
+      if (areaSlugForAfter) {
+        revalidateArea(collectionSlug, areaSlugForAfter);
+      }
+      if (areaIdForAfter) {
+        try {
+          const who = await getActorLabel(userId);
+          await createActivityEvent({
+            collectionId,
+            actorUserId: userId,
+            eventType: ActivityEventTypes.areaCreated,
+            summary: `${who} added ${areaName} as an area`,
+            payload: { areaName },
+            collectionSlug,
+          });
+        } catch (e) {
+          console.error("activity event", e);
+        }
+      }
     } catch (e) {
-      console.error("activity event", e);
+      console.error("createAreaAction after()", e);
     }
-  }
+  });
+
   return { success: true };
 }
 

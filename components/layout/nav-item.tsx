@@ -1,7 +1,7 @@
 "use client";
 
 import Link, { useLinkStatus } from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { Loader2, type LucideIcon } from "lucide-react";
 
 type NavItemProps = {
   href: string;
@@ -35,14 +35,22 @@ function NavItemInner({
       ].join(" ")}
       aria-busy={pending}
     >
-      <Icon
-        className={[
-          "size-5 shrink-0 transition-colors",
-          active ? "text-primary" : "text-on-surface-variant group-hover:text-on-surface",
-        ].join(" ")}
-        strokeWidth={1.75}
-        aria-hidden
-      />
+      {pending ? (
+        <Loader2
+          className="size-5 shrink-0 animate-spin text-primary"
+          strokeWidth={2}
+          aria-hidden
+        />
+      ) : (
+        <Icon
+          className={[
+            "size-5 shrink-0 transition-colors",
+            active ? "text-primary" : "text-on-surface-variant group-hover:text-on-surface",
+          ].join(" ")}
+          strokeWidth={1.75}
+          aria-hidden
+        />
+      )}
       <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
         <span className="truncate">{label}</span>
         {showBadge ? (

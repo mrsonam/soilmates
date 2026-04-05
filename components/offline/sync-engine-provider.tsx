@@ -116,7 +116,7 @@ export function OfflineProviders({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 120_000,
+            staleTime: 300_000,
             gcTime: 1_800_000,
             retry: (failureCount, error) => {
               if (failureCount >= 2) return false;

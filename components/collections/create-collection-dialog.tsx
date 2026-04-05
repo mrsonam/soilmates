@@ -37,11 +37,12 @@ function CreateCollectionFormBody({
   );
 
   useEffect(() => {
-    if (state.success) {
+    if (state.success && state.slug) {
       onSuccess();
+      router.push(`/collections/${state.slug}`);
       router.refresh();
     }
-  }, [state.success, onSuccess, router]);
+  }, [state.success, state.slug, onSuccess, router]);
 
   return (
     <div className="p-6 sm:p-8">

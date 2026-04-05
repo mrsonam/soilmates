@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { bottomNav, isBottomNavActive } from "@/lib/layout/nav-config";
 
 type BottomNavItemProps = {
@@ -28,11 +29,19 @@ function BottomNavItemInner({
       ].join(" ")}
       aria-busy={pending}
     >
-      <Icon
-        className="size-[1.15rem] shrink-0 sm:size-5"
-        strokeWidth={active ? 2 : 1.75}
-        aria-hidden
-      />
+      {pending ? (
+        <Loader2
+          className="size-[1.15rem] shrink-0 animate-spin text-primary sm:size-5"
+          strokeWidth={2}
+          aria-hidden
+        />
+      ) : (
+        <Icon
+          className="size-[1.15rem] shrink-0 sm:size-5"
+          strokeWidth={active ? 2 : 1.75}
+          aria-hidden
+        />
+      )}
       <span
         className={[
           "max-w-full truncate text-[0.6rem] font-medium leading-tight sm:text-[0.65rem]",

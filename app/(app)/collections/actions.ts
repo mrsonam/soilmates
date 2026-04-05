@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveUniqueCollectionSlug } from "@/lib/collections/slug";
@@ -87,45 +87,47 @@ export async function createCollectionInAppAction(
     return { error: "Could not create collection. Try again." };
   }
 
-  try {
-    const who = await getActorLabel(userId);
-    const colName = parsed.data.name.trim();
-    await createActivityEvent({
-      collectionId: collection.id,
-      actorUserId: userId,
-      eventType: ActivityEventTypes.collectionCreated,
-      summary: `${who} created ${colName}`,
-      payload: { name: colName },
-      collectionSlug: collection.slug,
-    });
-  } catch (e) {
-    console.error("activity event", e);
-  }
+  const colName = parsed.data.name.trim();
+  const collectionId = collection.id;
+  const collectionSlug = collection.slug;
 
+  let coverPayload: { buffer: ArrayBuffer; mime: string } | null = null;
   if (storageOn && coverFile && coverFile.size > 0) {
-    const up = await setCollectionCoverFromFile(
-      userId,
-      collection.slug,
-      coverFile,
-    );
-    if (!up.ok) {
-      try {
-        await prisma.collection.delete({ where: { id: collection.id } });
-      } catch (delErr) {
-        console.error(delErr);
-      }
-      return { error: up.error };
+    coverPayload = {
+      buffer: await coverFile.arrayBuffer(),
+      mime: coverFile.type.toLowerCase() || "image/jpeg",
+    };
+  }
+
+  after(async () => {
+    try {
+      const who = await getActorLabel(userId);
+      await createActivityEvent({
+        collectionId,
+        actorUserId: userId,
+        eventType: ActivityEventTypes.collectionCreated,
+        summary: `${who} created ${colName}`,
+        payload: { name: colName },
+        collectionSlug,
+      });
+    } catch (e) {
+      console.error("activity event", e);
     }
-    revalidatePath(`/collections/${collection.slug}`);
-  }
 
-  revalidatePath("/collections");
-  revalidatePath("/dashboard");
+    if (storageOn && coverPayload) {
+      const file = new File([coverPayload.buffer], "cover", {
+        type: coverPayload.mime,
+      });
+      const up = await setCollectionCoverFromFile(userId, collectionSlug, file);
+      if (!up.ok) {
+        console.error("collection cover upload", up.error);
+      }
+    }
 
-  const openAfter = formData.get("openAfter") === "1";
-  if (openAfter) {
-    redirect(`/collections/${collection.slug}`);
-  }
+    revalidatePath(`/collections/${collectionSlug}`);
+    revalidatePath("/collections");
+    revalidatePath("/dashboard");
+  });
 
-  return { success: true, slug: collection.slug };
+  return { success: true, slug: collectionSlug };
 }

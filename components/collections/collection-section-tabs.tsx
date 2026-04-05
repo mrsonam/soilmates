@@ -4,6 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Loader2,
   MapPin,
   Sprout,
   Users,
@@ -92,7 +93,15 @@ function CollectionTabLinkInner({
       ].join(" ")}
       aria-busy={pending}
     >
-      <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+      {pending ? (
+        <Loader2
+          className="size-4 shrink-0 animate-spin text-primary"
+          strokeWidth={2}
+          aria-hidden
+        />
+      ) : (
+        <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+      )}
       {label}
     </span>
   );
