@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ActivityFeedItem } from "@/lib/activity/queries";
+import { sortActivityFeedItemsStable } from "@/lib/activity/sort-activity-feed";
 import { ActivityAvatar, ActivityTypeIcon } from "./activity-type-icon";
 import { ActivityTimestamp } from "./activity-timestamp";
 
@@ -19,9 +20,11 @@ export function CollectionActivityPreview({
     );
   }
 
+  const previewItems = sortActivityFeedItemsStable(items).slice(0, 5);
+
   return (
     <ul className="divide-y divide-outline-variant/10">
-      {items.slice(0, 5).map((item) => {
+      {previewItems.map((item) => {
         const actorName = item.actor?.displayName ?? "Someone";
         const avatarUrl = item.actor?.avatarUrl ?? null;
         return (

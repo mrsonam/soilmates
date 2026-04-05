@@ -24,7 +24,7 @@ import { getActorLabel } from "@/lib/activity/actor-label";
 import { reminderTypeLabel } from "@/lib/activity/reminder-label";
 
 export type ReminderActionResult =
-  | { ok: true }
+  | { ok: true; reminderId?: string }
   | { ok: false; error: string };
 
 function revalidateReminderPaths(collectionSlug: string, plantSlug: string) {
@@ -161,7 +161,7 @@ export async function createReminderAction(
   }
 
   revalidateReminderPaths(d.collectionSlug, d.plantSlug);
-  return { ok: true };
+  return { ok: true, reminderId: id };
 }
 
 export async function updateReminderAction(

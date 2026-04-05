@@ -57,11 +57,14 @@ export function NotificationsSettings({
           Reserved for gentle highlights inside Soil Mates. Your reminders and
           dashboard still show what needs care.
         </p>
-        <label className="mt-5 flex cursor-pointer items-start gap-3">
+        <label
+          className={`mt-5 flex items-start gap-3 ${status === "saving" ? "cursor-wait opacity-80" : "cursor-pointer"}`}
+        >
           <input
             type="checkbox"
             className="mt-1 size-4 rounded border-outline-variant"
             checked={inApp}
+            disabled={status === "saving"}
             onChange={(e) => saveInApp(e.target.checked)}
           />
           <span className="text-sm text-on-surface">

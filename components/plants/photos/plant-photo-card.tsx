@@ -26,6 +26,8 @@ export function PlantPhotoCard({ image, onOpen }: PlantPhotoCardProps) {
           <img
             src={image.signedUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (

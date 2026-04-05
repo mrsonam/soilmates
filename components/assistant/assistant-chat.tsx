@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Images } from "lucide-react";
 import { PlantDiagnosisStatus } from "@prisma/client";
 import { AssistantMessageBubble } from "./assistant-message-bubble";
 import { AssistantComposer } from "./assistant-composer";
-import { PlantAssistantComposer } from "./plant-assistant-composer";
 import { AssistantEmptyState } from "./assistant-empty-state";
 import { AssistantSuggestedPrompts } from "./assistant-suggested-prompts";
-import { DiagnosisResultCard } from "@/components/diagnosis/diagnosis-result-card";
-import { DiagnosisHistoryList } from "@/components/diagnosis/diagnosis-history-list";
+
+const DiagnosisResultCard = dynamic(() =>
+  import("@/components/diagnosis/diagnosis-result-card").then((m) => ({
+    default: m.DiagnosisResultCard,
+  })),
+);
+const DiagnosisHistoryList = dynamic(() =>
+  import("@/components/diagnosis/diagnosis-history-list").then((m) => ({
+    default: m.DiagnosisHistoryList,
+  })),
+);
+const PlantAssistantComposer = dynamic(() =>
+  import("./plant-assistant-composer").then((m) => ({
+    default: m.PlantAssistantComposer,
+  })),
+);
 import {
   createGlobalThreadAction,
   sendAssistantMessageAction,
@@ -72,13 +86,42 @@ export function AssistantChat({
   const router = useRouter();
   const [threadId, setThreadId] = useState<string | null>(initialThreadId);
   const [pending, setPending] = useState(false);
-  const [composerBusy, setComposerBusy] = useState(false);
+  const [composerPhase, setComposerPhase] = useState<
+    "idle" | "upload" | "diagnose"
+  >("idle");
   const [resolvePending, setResolvePending] = useState(false);
   const [photoReviewOpen, setPhotoReviewOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingUserText, setPendingUserText] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const chatScrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
+  const composerBusy = composerPhase !== "idle";
   const thinking = pending || composerBusy;
+
+  const loadingLabel =
+    composerPhase === "upload"
+      ? "Uploading…"
+      : composerPhase === "diagnose"
+        ? "Diagnosing…"
+        : pending
+          ? "Writing…"
+          : "Thinking…";
+
+  const scrollChatIntoView = useCallback(() => {
+    requestAnimationFrame(() => {
+      chatScrollAnchorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
+  }, []);
+
+  const focusChatThread = useCallback(() => {
+    setPhotoReviewOpen(false);
+    scrollChatIntoView();
+  }, [scrollChatIntoView]);
   const pastDiagnoses =
     mode === "plant"
       ? diagnosisHistory.filter((h) => h.status !== PlantDiagnosisStatus.active)
@@ -90,11 +133,11 @@ export function AssistantChat({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [initialMessages.length, thinking]);
+  }, [initialMessages.length, thinking, pendingUserText]);
 
   useEffect(() => {
     if (!photoReviewOpen) {
-      setComposerBusy(false);
+      setComposerPhase("idle");
     }
   }, [photoReviewOpen]);
 
@@ -107,15 +150,25 @@ export function AssistantChat({
 
   async function handleSend(text: string) {
     setActionError(null);
+    setPendingUserText(text);
+    if (mode === "plant" && photoReviewOpen) {
+      setPhotoReviewOpen(false);
+    }
+    scrollChatIntoView();
     setPending(true);
     try {
       let tid = threadId;
       if (!tid) {
-        if (mode !== "global") return;
+        if (mode !== "global") {
+          setPendingUserText(null);
+          setPending(false);
+          return;
+        }
         const created = await createGlobalThreadAction();
         tid = created.id;
         setThreadId(tid);
         router.replace(`/assistant?thread=${encodeURIComponent(tid)}`);
+        scrollChatIntoView();
       }
 
       const result = await sendAssistantMessageAction({
@@ -126,6 +179,7 @@ export function AssistantChat({
 
       if (!result.ok) {
         setActionError(result.error);
+        setPendingUserText(null);
         return;
       }
 
@@ -144,15 +198,32 @@ export function AssistantChat({
       } else {
         setActionError(msg);
       }
+      setPendingUserText(null);
     } finally {
       setPending(false);
+      setPendingUserText(null);
     }
   }
 
-  const visible = initialMessages.filter(
-    (m) => m.role === "user" || m.role === "assistant",
+  const visible = useMemo(
+    () =>
+      initialMessages.filter(
+        (m) => m.role === "user" || m.role === "assistant",
+      ),
+    [initialMessages],
   );
-  const showEmpty = visible.length === 0;
+
+  /** Avoid double user rows when `router.refresh()` delivers the message before pending UI clears. */
+  const serverHasPendingUserContent = useMemo(() => {
+    if (!pendingUserText?.trim()) return false;
+    const t = pendingUserText.trim();
+    return visible.some(
+      (m) => m.role === "user" && m.content.trim() === t,
+    );
+  }, [visible, pendingUserText]);
+
+  const showEmpty =
+    visible.length === 0 && !pendingUserText && !thinking;
   const prompts = mode === "plant" ? PLANT_PROMPTS : GLOBAL_PROMPTS;
 
   return (
@@ -165,7 +236,11 @@ export function AssistantChat({
           {actionError}
         </div>
       ) : null}
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+      <div
+        id={mode === "plant" ? "plant-assistant-chat" : "assistant-chat-messages"}
+        ref={chatScrollAnchorRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4"
+      >
         {showEmpty ? (
           <AssistantEmptyState variant={mode === "plant" ? "plant" : "global"} />
         ) : null}
@@ -180,12 +255,23 @@ export function AssistantChat({
           />
         ))}
 
+        {pendingUserText && !serverHasPendingUserContent ? (
+          <AssistantMessageBubble
+            role="user"
+            content={pendingUserText}
+            createdAt={new Date().toISOString()}
+          />
+        ) : null}
+
         {thinking ? (
-          <div className="flex justify-start">
+          <div className="flex justify-start" aria-live="polite">
             <div className="rounded-2xl bg-surface-container-high/80 px-4 py-3 text-sm text-on-surface-variant ring-1 ring-outline-variant/12">
-              <span className="inline-flex gap-1">
-                <span className="animate-pulse">Thinking</span>
-                <span className="opacity-60">…</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="inline-block size-2 animate-pulse rounded-full bg-primary/70"
+                  aria-hidden
+                />
+                <span className="font-medium">{loadingLabel}</span>
               </span>
             </div>
           </div>
@@ -266,7 +352,8 @@ export function AssistantChat({
               uploadsEnabled={uploadsEnabled}
               onSendText={handleSend}
               chatPending={pending}
-              setComposerBusy={setComposerBusy}
+              onComposerActivity={setComposerPhase}
+              onFocusChat={focusChatThread}
               onBackToChat={() => setPhotoReviewOpen(false)}
             />
           </div>

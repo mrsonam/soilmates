@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { AppSelect } from "@/components/ui/app-select";
-import { updateReminderAction } from "@/app/(app)/collections/[collectionSlug]/plants/reminder-actions";
+import { useUpdateReminderMutation } from "@/hooks/mutations/reminder-mutations";
 import type { ReminderListItem } from "@/lib/reminders/queries";
 import { INTERVAL_UNITS, PREFERRED_WINDOWS } from "@/lib/reminders/constants";
-import type { ReminderType } from "@prisma/client";
+import type { ReminderPreferredWindow, ReminderType } from "@prisma/client";
 import { defaultTitleForReminderType } from "@/lib/reminders/labels";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type EditReminderDialogProps = {
   open: boolean;
@@ -25,10 +25,10 @@ export function EditReminderDialog({
   plantSlug,
   item,
 }: EditReminderDialogProps) {
-  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const updateMut = useUpdateReminderMutation(collectionSlug, plantSlug);
+  const pending = updateMut.isPending;
   const [intervalUnit, setIntervalUnit] = useState("days");
   const [preferredWindow, setPreferredWindow] = useState("flexible");
 
@@ -50,8 +50,9 @@ export function EditReminderDialog({
       e.preventDefault();
       if (!item) return;
       const fd = new FormData(e.currentTarget);
-      startTransition(async () => {
-        const res = await updateReminderAction({
+      setError(null);
+      updateMut.mutate(
+        {
           collectionSlug,
           plantSlug,
           reminderId: item.id,
@@ -59,24 +60,27 @@ export function EditReminderDialog({
           description: String(fd.get("description") ?? "") || undefined,
           intervalValue: Number(fd.get("intervalValue")),
           intervalUnit: fd.get("intervalUnit") as "days" | "weeks" | "months",
-          preferredWindow:
-            (fd.get("preferredWindow") as string) || undefined || null,
+          preferredWindow: (() => {
+            const raw = fd.get("preferredWindow");
+            if (raw == null || raw === "") return null;
+            return raw as ReminderPreferredWindow;
+          })(),
           gracePeriodHours: fd.get("gracePeriodHours")
             ? Number(fd.get("gracePeriodHours"))
             : undefined,
           overdueAfterHours: fd.get("overdueAfterHours")
             ? Number(fd.get("overdueAfterHours"))
             : undefined,
-        });
-        if (res.ok) {
-          onClose();
-          router.refresh();
-        } else {
-          setError(res.error);
-        }
-      });
+        },
+        {
+          onSuccess: () => onClose(),
+          onError: (err) => {
+            setError(err instanceof Error ? err.message : "Could not save.");
+          },
+        },
+      );
     },
-    [collectionSlug, plantSlug, item, onClose, router],
+    [collectionSlug, plantSlug, item, onClose, updateMut],
   );
 
   return (
@@ -235,13 +239,14 @@ export function EditReminderDialog({
             >
               Cancel
             </button>
-            <button
+            <PendingButton
               type="submit"
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Saving…"
               className="h-12 w-full rounded-full bg-primary text-sm font-medium text-on-primary transition hover:bg-primary/90 disabled:opacity-60"
             >
-              {pending ? "Saving…" : "Save changes"}
-            </button>
+              Save changes
+            </PendingButton>
           </div>
         </form>
       ) : null}

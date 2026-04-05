@@ -18,7 +18,7 @@ import { getActorLabel } from "@/lib/activity/actor-label";
 import { careActionVerbPast } from "@/lib/activity/care-verb";
 
 export type CareLogMutationResult =
-  | { ok: true }
+  | { ok: true; careLogId?: string }
   | { ok: false; error: string };
 
 function revalidateCarePaths(collectionSlug: string, plantSlug: string) {
@@ -132,7 +132,7 @@ export async function createDetailedCareLogAction(
   });
 
   revalidateCarePaths(d.collectionSlug, d.plantSlug);
-  return { ok: true };
+  return { ok: true, careLogId };
 }
 
 export async function updateCareLogAction(

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useCallback } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -22,14 +23,17 @@ function shouldSyncRoute(pathname: string | null): boolean {
 export function useAppRealtimeSync() {
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const lastRef = useRef(0);
 
   const refresh = useCallback(() => {
     const now = Date.now();
     if (now - lastRef.current < 900) return;
+    /** Avoid RSC refresh racing TanStack optimistic updates / pending mutations. */
+    if (queryClient.isMutating() > 0) return;
     lastRef.current = now;
     router.refresh();
-  }, [router]);
+  }, [router, queryClient]);
 
   useEffect(() => {
     if (!shouldSyncRoute(pathname)) return;

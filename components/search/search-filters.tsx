@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AppSelect } from "@/components/ui/app-select";
 import type { GlobalSearchFilters, SearchEntityType } from "@/lib/search/types";
@@ -47,6 +47,7 @@ export function SearchFilters({
   counts: { total: number } & Record<string, number>;
 }) {
   const router = useRouter();
+  const [, startNav] = useTransition();
   const pathname = usePathname();
   const sp = useSearchParams();
 
@@ -57,7 +58,9 @@ export function SearchFilters({
     for (const [k, v] of Object.entries(next)) {
       setParam(p, k, v ?? null);
     }
-    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+    startNav(() => {
+      router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+    });
   }
 
   const entityChips: Array<{ type: SearchEntityType; label: string; countKey: string }> =

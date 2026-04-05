@@ -17,6 +17,14 @@ const googleProvider =
       })
     : null;
 
+/** Profile.id is @db.Uuid — reject OAuth `sub` and other non-UUID values in the JWT. */
+const PROFILE_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isProfileUuid(id: unknown): id is string {
+  return typeof id === "string" && PROFILE_UUID_RE.test(id);
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
@@ -49,9 +57,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
-      if (user?.email && !token.id) {
+      if (user?.email) {
+        token.email = user.email;
+      }
+      const email = typeof token.email === "string" ? token.email : undefined;
+      if (email && (!token.id || !isProfileUuid(token.id))) {
         const profile = await prisma.profile.findUnique({
-          where: { email: user.email },
+          where: { email },
           select: { id: true },
         });
         if (profile) {
@@ -61,8 +73,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
+      if (!session.user) return session;
+
+      let id: string | undefined =
+        token.id && isProfileUuid(token.id) ? token.id : undefined;
+      if (!id && session.user.email) {
+        const profile = await prisma.profile.findUnique({
+          where: { email: session.user.email },
+          select: { id: true },
+        });
+        if (profile) id = profile.id;
+      }
+      if (id) {
+        session.user.id = id;
+      } else {
+        delete (session.user as { id?: string }).id;
       }
       return session;
     },

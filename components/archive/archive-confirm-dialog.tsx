@@ -1,11 +1,15 @@
 "use client";
 
+import { PendingButton } from "@/components/loading/pending-button";
+
 type ArchiveConfirmDialogProps = {
   open: boolean;
   onClose: () => void;
   title: string;
   description: string;
   confirmLabel: string;
+  /** Shown on the confirm control while `busy` (default: Archiving…). */
+  pendingLabel?: string;
   onConfirm: () => void | Promise<void>;
   busy?: boolean;
   error?: string | null;
@@ -17,6 +21,7 @@ export function ArchiveConfirmDialog({
   title,
   description,
   confirmLabel,
+  pendingLabel = "Archiving…",
   onConfirm,
   busy = false,
   error,
@@ -54,19 +59,21 @@ export function ArchiveConfirmDialog({
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button
             type="button"
+            disabled={busy}
             onClick={onClose}
-            className="rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low"
+            className="rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <PendingButton
             type="button"
-            disabled={busy}
+            pending={busy}
+            pendingLabel={pendingLabel}
             onClick={() => void onConfirm()}
             className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary hover:bg-primary/90 disabled:opacity-50"
           >
-            {busy ? "Working…" : confirmLabel}
-          </button>
+            {confirmLabel}
+          </PendingButton>
         </div>
       </div>
     </div>

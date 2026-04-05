@@ -12,6 +12,7 @@ import { X } from "lucide-react";
 import { updateAreaAction } from "@/app/(app)/collections/[collectionSlug]/area-actions";
 import { areaMutationFormInitialState } from "@/app/(app)/collections/[collectionSlug]/area-form-state";
 import type { AreaForCollectionDetail } from "@/lib/collections/collection-detail";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type EditAreaDialogProps = {
   open: boolean;
@@ -172,13 +173,14 @@ function EditAreaFormBody({
           >
             Cancel
           </button>
-          <button
+          <PendingButton
             type="submit"
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Saving…"
             className="h-12 w-full rounded-full bg-primary text-sm font-medium text-on-primary transition hover:bg-primary/90 disabled:opacity-60"
           >
-            {pending ? "Saving…" : "Save changes"}
-          </button>
+            Save changes
+          </PendingButton>
         </div>
       </form>
     </div>

@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { memo } from "react";
+import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link";
 import { Armchair } from "lucide-react";
 import type { PlantListItem } from "@/lib/plants/queries";
 import { PlantLifeStageBadge } from "./plant-life-stage-badge";
@@ -10,14 +13,20 @@ type PlantCardProps = {
   plant: PlantListItem;
   /** When true, show owning collection under the area line (all-plants catalog). */
   showCollectionLabel?: boolean;
+  /** First visible cards use eager decode for LCP; defer the rest. */
+  imageLoading?: "eager" | "lazy";
 };
 
-export function PlantCard({ plant, showCollectionLabel }: PlantCardProps) {
+function PlantCardInner({
+  plant,
+  showCollectionLabel,
+  imageLoading = "eager",
+}: PlantCardProps) {
   const href = `/collections/${plant.collection.slug}/plants/${plant.slug}`;
   const progress = plant.growthProgressPercent ?? 0;
 
   return (
-    <Link
+    <IntentPrefetchLink
       href={href}
       className="group block overflow-hidden rounded-3xl bg-surface-container-lowest shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-16px_rgba(27,28,26,0.1)] hover:ring-primary/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
     >
@@ -28,6 +37,8 @@ export function PlantCard({ plant, showCollectionLabel }: PlantCardProps) {
             <img
               src={plant.coverImageUrl}
               alt=""
+              loading={imageLoading}
+              decoding="async"
               className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-[1.02]"
             />
           </div>
@@ -88,6 +99,8 @@ export function PlantCard({ plant, showCollectionLabel }: PlantCardProps) {
           </div>
         </div>
       </div>
-    </Link>
+    </IntentPrefetchLink>
   );
 }
+
+export const PlantCard = memo(PlantCardInner);

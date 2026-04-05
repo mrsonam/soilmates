@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileJson, Table } from "lucide-react";
+import { Download, FileJson, Loader2, Table } from "lucide-react";
 
 export function ExportDataCard() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -40,6 +40,7 @@ export function ExportDataCard() {
         <button
           type="button"
           disabled={loading !== null}
+          aria-busy={loading?.endsWith(".json") ?? false}
           onClick={() =>
             download(
               "/api/me/export?format=json",
@@ -48,12 +49,17 @@ export function ExportDataCard() {
           }
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition hover:bg-primary/90 disabled:opacity-50"
         >
-          <FileJson className="size-4" strokeWidth={1.75} aria-hidden />
+          {loading?.endsWith(".json") ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <FileJson className="size-4" strokeWidth={1.75} aria-hidden />
+          )}
           {loading?.endsWith(".json") ? "Preparing…" : "Download JSON"}
         </button>
         <button
           type="button"
           disabled={loading !== null}
+          aria-busy={loading?.includes("plants") ?? false}
           onClick={() =>
             download(
               "/api/me/export?format=csv&kind=plants",
@@ -62,12 +68,17 @@ export function ExportDataCard() {
           }
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-surface-container-high px-4 py-2.5 text-sm font-medium text-on-surface ring-1 ring-outline-variant/20 hover:bg-surface-container-highest disabled:opacity-50"
         >
-          <Table className="size-4" strokeWidth={1.75} aria-hidden />
+          {loading?.includes("plants") ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Table className="size-4" strokeWidth={1.75} aria-hidden />
+          )}
           {loading?.includes("plants") ? "Preparing…" : "Plants CSV"}
         </button>
         <button
           type="button"
           disabled={loading !== null}
+          aria-busy={loading?.includes("care-logs") ?? false}
           onClick={() =>
             download(
               "/api/me/export?format=csv&kind=care_logs",
@@ -76,12 +87,17 @@ export function ExportDataCard() {
           }
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-surface-container-high px-4 py-2.5 text-sm font-medium text-on-surface ring-1 ring-outline-variant/20 hover:bg-surface-container-highest disabled:opacity-50"
         >
-          <Download className="size-4" strokeWidth={1.75} aria-hidden />
+          {loading?.includes("care-logs") ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Download className="size-4" strokeWidth={1.75} aria-hidden />
+          )}
           {loading?.includes("care-logs") ? "Preparing…" : "Care logs CSV"}
         </button>
         <button
           type="button"
           disabled={loading !== null}
+          aria-busy={loading?.includes("reminders") ?? false}
           onClick={() =>
             download(
               "/api/me/export?format=csv&kind=reminders",
@@ -90,7 +106,11 @@ export function ExportDataCard() {
           }
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-surface-container-high px-4 py-2.5 text-sm font-medium text-on-surface ring-1 ring-outline-variant/20 hover:bg-surface-container-highest disabled:opacity-50"
         >
-          <Download className="size-4" strokeWidth={1.75} aria-hidden />
+          {loading?.includes("reminders") ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Download className="size-4" strokeWidth={1.75} aria-hidden />
+          )}
           {loading?.includes("reminders") ? "Preparing…" : "Reminders CSV"}
         </button>
       </div>

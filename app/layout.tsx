@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Manrope } from "next/font/google";
 import { cookies, headers } from "next/headers";
-import Script from "next/script";
 import { Providers } from "./providers";
 import "./globals.css";
 import {
@@ -110,6 +109,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   colorScheme: "light dark",
 };
@@ -144,13 +145,17 @@ export default async function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content={shell.statusBarStyle}
         />
-      </head>
-      <body className="flex min-h-dvh flex-col bg-surface text-on-surface">
-        <Script
+        {/*
+          Inline theme init must live in <head> as a plain script, not next/script
+          in <body>: React 19 warns that scripts in the client tree do not run.
+          This runs during HTML parse before paint (same goal as beforeInteractive).
+        */}
+        <script
           id="soilmates-theme-init"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: getThemeInitScript() }}
         />
+      </head>
+      <body className="flex min-h-dvh flex-col bg-surface text-on-surface">
         <Providers>{children}</Providers>
       </body>
     </html>

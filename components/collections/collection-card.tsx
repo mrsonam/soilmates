@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link";
 import { LayoutGrid, Sprout, Users } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
 
@@ -33,7 +33,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   const privacyLabel = memberCount > 1 ? "Shared" : "Private";
 
   return (
-    <Link
+    <IntentPrefetchLink
       href={`/collections/${slug}`}
       className="card-lift group block overflow-hidden rounded-3xl bg-surface-container-lowest ring-1 ring-outline-variant/[0.07] transition-[transform,box-shadow] duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/40"
     >
@@ -101,6 +101,6 @@ export function CollectionCard({ collection }: CollectionCardProps) {
           <span>Created {formatShortDate(createdAt)}</span>
         </div>
       </div>
-    </Link>
+    </IntentPrefetchLink>
   );
 }

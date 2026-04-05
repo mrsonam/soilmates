@@ -70,6 +70,12 @@ export default async function PlantCareHistoryPage({ params }: Props) {
         collectionSlug={collectionSlug}
         careLogs={careLogs}
         currentUserId={session.user.id}
+        currentUserProfile={{
+          id: session.user.id,
+          name: session.user.name ?? null,
+          email: session.user.email ?? null,
+          image: session.user.image ?? null,
+        }}
         initialTab="care_history"
         galleryImages={galleryImages}
         uploadsEnabled={isSupabaseStorageConfigured()}

@@ -47,6 +47,7 @@ export function ThemeSelector() {
         className="mt-3 flex flex-wrap gap-2"
         role="radiogroup"
         aria-label="Theme"
+        aria-busy={status === "saving"}
       >
         {OPTIONS.map((o) => {
           const Icon = o.icon;

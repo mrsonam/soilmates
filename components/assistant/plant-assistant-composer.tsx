@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, ImagePlus, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import type { PlantGalleryImage } from "@/lib/plants/plant-images";
 import { uploadPlantImagesAction } from "@/app/(app)/collections/[collectionSlug]/plants/plant-image-actions";
 import { createPlantDiagnosisAction } from "@/lib/diagnosis/actions";
@@ -22,8 +22,10 @@ type PlantAssistantComposerProps = {
   onSendText: (text: string) => Promise<void>;
   /** True while a chat message is in flight */
   chatPending: boolean;
-  /** Upload / diagnosis activity — merge with chat pending for “Thinking…” */
-  setComposerBusy: (busy: boolean) => void;
+  /** Upload vs diagnosis so the chat can show “Uploading…” vs “Diagnosing…” */
+  onComposerActivity?: (phase: "idle" | "upload" | "diagnose") => void;
+  /** Scroll/focus the main chat thread (e.g. collapse photo review) */
+  onFocusChat?: () => void;
   /** Collapse photo review back to chat-only (icon beside Message) */
   onBackToChat?: () => void;
 };
@@ -37,7 +39,8 @@ export function PlantAssistantComposer({
   uploadsEnabled,
   onSendText,
   chatPending,
-  setComposerBusy,
+  onComposerActivity,
+  onFocusChat,
   onBackToChat,
 }: PlantAssistantComposerProps) {
   const router = useRouter();
@@ -64,8 +67,10 @@ export function PlantAssistantComposer({
   }, [galleryImages]);
 
   useEffect(() => {
-    setComposerBusy(uploadPending || diagPending);
-  }, [uploadPending, diagPending, setComposerBusy]);
+    if (uploadPending) onComposerActivity?.("upload");
+    else if (diagPending) onComposerActivity?.("diagnose");
+    else onComposerActivity?.("idle");
+  }, [uploadPending, diagPending, onComposerActivity]);
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -110,6 +115,7 @@ export function PlantAssistantComposer({
   function runDiagnosis() {
     if (!threadId || selectedIds.length === 0) return;
     setLocalError(null);
+    onFocusChat?.();
     startDiag(async () => {
       const r = await createPlantDiagnosisAction({
         collectionSlug,
@@ -225,10 +231,15 @@ export function PlantAssistantComposer({
           type="button"
           disabled={!canReview || busy}
           onClick={() => runDiagnosis()}
+          aria-busy={diagPending}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Sparkles className="size-4 shrink-0" aria-hidden />
-          {diagPending ? "Reviewing…" : "Run photo review"}
+          {diagPending ? (
+            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+          ) : (
+            <Sparkles className="size-4 shrink-0" aria-hidden />
+          )}
+          {diagPending ? "Diagnosing…" : "Run photo review"}
         </button>
       </div>
 

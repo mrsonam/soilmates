@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar";
 import { BottomNav } from "./bottom-nav";
 import { AppHeader } from "./app-header";
 import { AssistantFab } from "./assistant-fab";
+import { NavigationProgress } from "./navigation-progress";
 import type { CollectionOption } from "./collection-switcher";
 import { CollectionsCreateProvider } from "./collections-create-provider";
 import { CollectionHeaderProvider } from "./collection-header-context";
@@ -47,6 +48,7 @@ export function AppShell({
       <CollectionHeaderProvider>
         <CollectionPageActionsProvider>
         <div className="min-h-dvh bg-surface text-on-surface">
+          <NavigationProgress />
           <AppRealtimeSync />
           <div className="flex min-h-dvh items-stretch">
             <Sidebar

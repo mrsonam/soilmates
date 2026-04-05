@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Archive } from "lucide-react";
 import { archiveAreaAction } from "@/app/(app)/collections/[collectionSlug]/area-actions";
 import { areaMutationFormInitialState } from "@/app/(app)/collections/[collectionSlug]/area-form-state";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type ArchiveAreaFormProps = {
   collectionSlug: string;
@@ -53,14 +54,16 @@ export function ArchiveAreaForm({
           {state.error}
         </p>
       )}
-      <button
+      <PendingButton
         type="submit"
-        disabled={pending}
-        className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface disabled:opacity-50"
+        pending={pending}
+        pendingLabel="Archiving…"
+        showSpinner={true}
+        className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface disabled:opacity-50"
       >
         <Archive className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-        {pending ? "Archiving…" : "Archive area"}
-      </button>
+        Archive area
+      </PendingButton>
     </form>
   );
 }

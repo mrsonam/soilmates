@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Droplets,
   Eye,
@@ -9,10 +8,9 @@ import {
   PackageOpen,
   Scissors,
 } from "lucide-react";
-import { createQuickCareLogAction } from "@/app/(app)/collections/[collectionSlug]/plants/care-log-actions";
 import type { QuickCareAction } from "@/lib/validations/care-log";
-import { SyncEntityType, SyncOperationType } from "@/lib/sync/operation-types";
-import { runOrEnqueueMutation } from "@/lib/sync/run-or-enqueue";
+import { careLogCreatorFromProfile } from "@/lib/optimistic/user-creator";
+import { useQuickCareLogMutation } from "@/hooks/mutations/plant-care-mutations";
 import { QuickCareActionButton } from "./quick-care-action-button";
 
 const ACTIONS: {
@@ -31,15 +29,26 @@ type QuickCareActionsProps = {
   collectionSlug: string;
   plantSlug: string;
   disabled?: boolean;
+  creator: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  };
 };
 
 export function QuickCareActions({
   collectionSlug,
   plantSlug,
   disabled = false,
+  creator,
 }: QuickCareActionsProps) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const creatorSnapshot = careLogCreatorFromProfile(creator);
+  const quickCare = useQuickCareLogMutation(
+    collectionSlug,
+    plantSlug,
+    creatorSnapshot,
+  );
   const [flash, setFlash] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<QuickCareAction | null>(null);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,48 +62,39 @@ export function QuickCareActions({
   const logAction = useCallback(
     (actionType: QuickCareAction) => {
       if (disabled) return;
-      startTransition(async () => {
-        const res = await runOrEnqueueMutation({
-          operationType: SyncOperationType.QUICK_CARE_LOG,
-          entityType: SyncEntityType.CARE_LOG,
-          payload: { collectionSlug, plantSlug, actionType },
-          execute: () =>
-            createQuickCareLogAction({
-              collectionSlug,
-              plantSlug,
-              actionType,
-            }),
-        });
-        if (res.ok) {
-          setLastAction(actionType);
-          setFlash(
-            "queued" in res && res.queued
-              ? "Queued — will sync when you’re online"
-              : "Saved",
-          );
-          try {
-            router.refresh();
-          } catch {
-            /* ignore */
-          }
-          if (clearTimer.current) clearTimeout(clearTimer.current);
-          clearTimer.current = setTimeout(() => {
-            setFlash(null);
-            setLastAction(null);
-            clearTimer.current = null;
-          }, 2200);
-        } else {
-          setFlash(res.error ?? "Could not save");
-          if (clearTimer.current) clearTimeout(clearTimer.current);
-          clearTimer.current = setTimeout(() => {
-            setFlash(null);
-            clearTimer.current = null;
-          }, 4000);
-        }
-      });
+      quickCare.mutate(
+        { actionType },
+        {
+          onSuccess: (data) => {
+            setLastAction(actionType);
+            const queued = "queued" in data && data.queued === true;
+            setFlash(
+              queued
+                ? "Queued — will sync when you’re online"
+                : "Saved",
+            );
+            if (clearTimer.current) clearTimeout(clearTimer.current);
+            clearTimer.current = setTimeout(() => {
+              setFlash(null);
+              setLastAction(null);
+              clearTimer.current = null;
+            }, 2200);
+          },
+          onError: (err) => {
+            setFlash(err instanceof Error ? err.message : "Could not save");
+            if (clearTimer.current) clearTimeout(clearTimer.current);
+            clearTimer.current = setTimeout(() => {
+              setFlash(null);
+              clearTimer.current = null;
+            }, 4000);
+          },
+        },
+      );
     },
-    [collectionSlug, plantSlug, router, disabled],
+    [disabled, quickCare],
   );
+
+  const pending = quickCare.isPending;
 
   return (
     <section className="rounded-3xl bg-surface-container-lowest/80 p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">

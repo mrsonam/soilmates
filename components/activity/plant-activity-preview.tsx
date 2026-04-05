@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ActivityFeedItem } from "@/lib/activity/queries";
+import { sortActivityFeedItemsStable } from "@/lib/activity/sort-activity-feed";
 import { ActivityFeedList } from "./activity-feed-list";
 
 export function PlantActivityPreview({
@@ -18,10 +19,12 @@ export function PlantActivityPreview({
     );
   }
 
+  const previewItems = sortActivityFeedItemsStable(items).slice(0, 4);
+
   return (
     <div className="space-y-4">
       <ActivityFeedList
-        items={items.slice(0, 4)}
+        items={previewItems}
         showCollectionChip={false}
       />
       <Link

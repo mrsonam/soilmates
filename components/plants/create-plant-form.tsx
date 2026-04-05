@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useTransition,
   type ReactNode,
 } from "react";
 import Link from "next/link";
@@ -25,6 +26,7 @@ import { AppSelect } from "@/components/ui/app-select";
 import { PlantReferencePicker } from "@/components/plants/plant-reference-picker";
 import { createPlantAction } from "@/app/(app)/collections/[collectionSlug]/plants/actions";
 import { createPlantFormInitialState } from "@/app/(app)/collections/[collectionSlug]/plants/plant-form-state";
+import { PendingButton } from "@/components/loading/pending-button";
 import type { PlantCreateAreaOption } from "@/lib/plants/queries";
 
 const LIFE_STAGES = [
@@ -140,6 +142,7 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
         : [];
 
   const router = useRouter();
+  const [, startNav] = useTransition();
   const [state, formAction, pending] = useActionState(
     createPlantAction,
     createPlantFormInitialState,
@@ -171,12 +174,14 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
 
   useEffect(() => {
     if (state.success && state.slug && state.collectionSlug) {
-      router.push(
-        `/collections/${state.collectionSlug}/plants/${state.slug}`,
-      );
-      router.refresh();
+      startNav(() => {
+        router.push(
+          `/collections/${state.collectionSlug}/plants/${state.slug}`,
+        );
+        router.refresh();
+      });
     }
-  }, [state.success, state.slug, state.collectionSlug, router]);
+  }, [state.success, state.slug, state.collectionSlug, router, startNav]);
 
   const plantsHref = isGlobal
     ? "/plants"
@@ -680,13 +685,14 @@ export function CreatePlantForm(props: CreatePlantFormProps) {
           >
             Cancel
           </Link>
-          <button
+          <PendingButton
             type="submit"
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Creating…"
             className="order-1 h-12 w-full rounded-full bg-primary text-sm font-semibold text-on-primary shadow-(--shadow-ambient) transition hover:bg-primary/90 disabled:opacity-60 sm:order-2 sm:w-auto sm:min-w-[11rem]"
           >
-            {pending ? "Creating…" : "Create plant"}
-          </button>
+            Create plant
+          </PendingButton>
         </div>
       </form>
     </div>

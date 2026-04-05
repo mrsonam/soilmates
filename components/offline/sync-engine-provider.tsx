@@ -1,6 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryCacheDefaults,
+  queryClientGlobalDefaults,
+} from "@/components/query/query-cache-defaults";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { getFeatureFlags } from "@/lib/feature-flags";
@@ -114,29 +118,15 @@ export function OfflineProviders({ children }: { children: React.ReactNode }) {
   const queryClient = useMemo(
     () =>
       new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 300_000,
-            gcTime: 1_800_000,
-            retry: (failureCount, error) => {
-              if (failureCount >= 2) return false;
-              if (error instanceof Error && error.message.includes("Unauthorized"))
-                return false;
-              return true;
-            },
-            refetchOnWindowFocus: false,
-            refetchOnReconnect: true,
-          },
-          mutations: {
-            retry: 1,
-          },
-        },
+        defaultOptions: queryClientGlobalDefaults,
       }),
     [],
   );
   return (
     <QueryClientProvider client={queryClient}>
-      <SyncEngineProvider>{children}</SyncEngineProvider>
+      <QueryCacheDefaults>
+        <SyncEngineProvider>{children}</SyncEngineProvider>
+      </QueryCacheDefaults>
     </QueryClientProvider>
   );
 }

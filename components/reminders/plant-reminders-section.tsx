@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import type { ReminderListItem } from "@/lib/reminders/queries";
+import { usePlantRemindersQuery } from "@/hooks/use-plant-reminders-query";
+import { useReminderMutations } from "@/hooks/mutations/reminder-mutations";
 import { ReminderCard } from "@/components/reminders/reminder-card";
 import { ReminderEmptyState } from "@/components/reminders/reminder-empty-state";
 import { CreateReminderDialog } from "@/components/reminders/create-reminder-dialog";
@@ -11,16 +13,23 @@ import { EditReminderDialog } from "@/components/reminders/edit-reminder-dialog"
 type PlantRemindersSectionProps = {
   collectionSlug: string;
   plantSlug: string;
-  reminders: ReminderListItem[];
+  serverReminders: ReminderListItem[];
 };
 
 export function PlantRemindersSection({
   collectionSlug,
   plantSlug,
-  reminders,
+  serverReminders,
 }: PlantRemindersSectionProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<ReminderListItem | null>(null);
+
+  const { data: reminders = [] } = usePlantRemindersQuery(
+    collectionSlug,
+    plantSlug,
+    serverReminders,
+  );
+  const mutations = useReminderMutations(collectionSlug, plantSlug);
 
   return (
     <section className="space-y-6">
@@ -55,9 +64,8 @@ export function PlantRemindersSection({
             <li key={r.id}>
               <ReminderCard
                 item={r}
-                collectionSlug={collectionSlug}
-                plantSlug={plantSlug}
                 onEdit={(item) => setEditItem(item)}
+                mutations={mutations}
               />
             </li>
           ))}

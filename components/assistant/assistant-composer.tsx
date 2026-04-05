@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useState, useTransition, type FormEvent } from "react";
 import { Send } from "lucide-react";
+import { PendingIconButton } from "@/components/loading/pending-button";
 
 type AssistantComposerProps = {
   onSend: (text: string) => Promise<void>;
@@ -57,14 +58,15 @@ export function AssistantComposer({
         disabled={pending || disabled}
         className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none"
       />
-      <button
+      <PendingIconButton
         type="submit"
-        disabled={pending || disabled || !text.trim()}
+        pending={pending}
+        pendingLabel="Sending…"
+        disabled={disabled || !text.trim()}
+        icon={<Send className="size-5" strokeWidth={2} aria-hidden />}
         className="focus-ring-premium flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-[background-color,transform,opacity] duration-200 hover:bg-primary/92 active:scale-[0.96] disabled:opacity-40"
         aria-label="Send message"
-      >
-        <Send className="size-5" strokeWidth={2} aria-hidden />
-      </button>
+      />
     </form>
   );
 }

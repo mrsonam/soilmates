@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import type { PlantGalleryImage } from "@/lib/plants/plant-images";
 import type { DiagnosisHistoryItem } from "@/lib/diagnosis/queries";
 import { createPlantDiagnosisAction } from "@/lib/diagnosis/actions";
@@ -214,9 +215,13 @@ export function PlantDiagnosisPanel({
               pending || !threadId || selectedIds.length === 0
             }
             onClick={() => runDiagnosis()}
-            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-busy={pending}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {pending ? "Reviewing…" : "Run diagnosis"}
+            {pending ? (
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+            ) : null}
+            {pending ? "Diagnosing…" : "Run diagnosis"}
           </button>
           {!threadId ? (
             <p className="text-sm text-on-surface-variant">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 
@@ -23,6 +23,7 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
 
 export function SearchInput({ initialQuery }: { initialQuery: string }) {
   const router = useRouter();
+  const [, startNav] = useTransition();
   const pathname = usePathname();
   const sp = useSearchParams();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -37,8 +38,10 @@ export function SearchInput({ initialQuery }: { initialQuery: string }) {
   }, [debouncedQ, pathname, sp]);
 
   useEffect(() => {
-    router.replace(nextHref, { scroll: false });
-  }, [nextHref, router]);
+    startNav(() => {
+      router.replace(nextHref, { scroll: false });
+    });
+  }, [nextHref, router, startNav]);
 
   useEffect(() => {
     inputRef.current?.focus();

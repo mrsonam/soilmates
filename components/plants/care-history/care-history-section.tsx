@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
+import { usePlantCareLogsQuery } from "@/hooks/use-plant-care-logs-query";
 import {
   CareHistoryFilters,
   matchesCareHistoryFilter,
@@ -19,6 +20,12 @@ type CareHistorySectionProps = {
   plantNickname: string;
   logs: CareLogListItem[];
   currentUserId: string;
+  creator: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  };
 };
 
 export function CareHistorySection({
@@ -27,15 +34,22 @@ export function CareHistorySection({
   plantNickname,
   logs,
   currentUserId,
+  creator,
 }: CareHistorySectionProps) {
   const [filter, setFilter] = useState<CareHistoryFilterId>("all");
   const [addOpen, setAddOpen] = useState(false);
   const [editLog, setEditLog] = useState<CareLogListItem | null>(null);
   const [deleteLog, setDeleteLog] = useState<CareLogListItem | null>(null);
 
+  const { data: list = logs } = usePlantCareLogsQuery(
+    collectionSlug,
+    plantSlug,
+    logs,
+  );
+
   const filtered = useMemo(
-    () => logs.filter((l) => matchesCareHistoryFilter(l.actionType, filter)),
-    [logs, filter],
+    () => list.filter((l) => matchesCareHistoryFilter(l.actionType, filter)),
+    [list, filter],
   );
 
   return (
@@ -59,11 +73,11 @@ export function CareHistorySection({
         </button>
       </div>
 
-      {logs.length > 0 ? (
+      {list.length > 0 ? (
         <CareHistoryFilters active={filter} onChange={setFilter} />
       ) : null}
 
-      {logs.length === 0 ? (
+      {list.length === 0 ? (
         <CareHistoryEmptyState onAddLog={() => setAddOpen(true)} />
       ) : filtered.length === 0 ? (
         <p className="rounded-3xl bg-surface-container-low/50 px-6 py-10 text-center text-sm text-on-surface-variant ring-1 ring-outline-variant/10">
@@ -84,6 +98,7 @@ export function CareHistorySection({
         collectionSlug={collectionSlug}
         plantSlug={plantSlug}
         mode="add"
+        creator={creator}
       />
       <CareLogFormDialog
         open={editLog !== null}
@@ -92,6 +107,7 @@ export function CareHistorySection({
         plantSlug={plantSlug}
         mode="edit"
         initialLog={editLog ?? undefined}
+        creator={creator}
       />
       <DeleteCareLogDialog
         open={deleteLog !== null}

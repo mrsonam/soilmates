@@ -33,6 +33,7 @@ export function DefaultCollectionSelector({
         <AppSelect
           options={options}
           value={value}
+          disabled={status === "saving"}
           onChange={(v) => {
             setValue(v);
             void save({

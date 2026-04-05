@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 
 type RestoreButtonProps = {
   label?: string;
@@ -37,12 +37,17 @@ export function RestoreButton({
         type="button"
         disabled={pending}
         onClick={click}
+        aria-busy={pending}
         className={[
           "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-primary ring-1 ring-primary/25 transition hover:bg-primary/10 disabled:opacity-50",
           className,
         ].join(" ")}
       >
-        <RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden />
+        {pending ? (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        ) : (
+          <RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden />
+        )}
         {pending ? "Restoring…" : label}
       </button>
       {error ? (

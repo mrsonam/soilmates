@@ -1,18 +1,23 @@
+"use client";
+
+import { memo } from "react";
 import Image from "next/image";
 import { formatCareLogWhen } from "@/lib/format";
 import { AssistantMarkdown } from "./assistant-markdown";
 
-export function AssistantMessageBubble({
-  role,
-  content,
-  createdAt,
-  diagnosisImageThumbs,
-}: {
+type AssistantMessageBubbleProps = {
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   createdAt: Date | string;
   diagnosisImageThumbs?: Array<{ id: string; signedUrl: string | null }>;
-}) {
+};
+
+function AssistantMessageBubbleInner({
+  role,
+  content,
+  createdAt,
+  diagnosisImageThumbs,
+}: AssistantMessageBubbleProps) {
   if (role === "system" || role === "tool") return null;
 
   const isUser = role === "user";
@@ -77,3 +82,5 @@ export function AssistantMessageBubble({
     </div>
   );
 }
+
+export const AssistantMessageBubble = memo(AssistantMessageBubbleInner);

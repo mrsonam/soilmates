@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
-  acceptCollectionInvite,
-  declineCollectionInvite,
-} from "@/app/actions/collection-invites";
+  useAcceptInvitationMutation,
+  useDeclineInvitationMutation,
+} from "@/hooks/mutations/invitation-mutations";
 import { formatMediumDateTime } from "@/lib/format";
 
 export type InvitationCardData = {
@@ -24,40 +24,35 @@ export type InvitationCardData = {
 };
 
 export function InvitationCard({ item }: { item: InvitationCardData }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [navPending, startNavTransition] = useTransition();
+  const accept = useAcceptInvitationMutation();
+  const decline = useDeclineInvitationMutation();
+
+  const pendingAccept =
+    accept.isPending && accept.variables === item.id;
+  const pendingDecline =
+    decline.isPending && decline.variables === item.id;
 
   const inviter =
     item.invitedBy.name?.trim()?.split(/\s+/)[0] ??
     item.invitedBy.email.split("@")[0];
 
-  async function onAccept() {
-    setBusy("accept");
+  function onAccept() {
     setError(null);
-    const r = await acceptCollectionInvite(item.id);
-    setBusy(null);
-    if (!r.ok) {
-      setError(r.error);
-      return;
-    }
-    startNavTransition(() => {
-      router.push(`/collections/${r.collectionSlug}`);
-      router.refresh();
+    accept.mutate(item.id, {
+      onError: (e) => {
+        setError(e instanceof Error ? e.message : "Could not accept.");
+      },
     });
   }
 
-  async function onDecline() {
-    setBusy("decline");
+  function onDecline() {
     setError(null);
-    const r = await declineCollectionInvite(item.id);
-    setBusy(null);
-    if (!r.ok) {
-      setError(r.error);
-      return;
-    }
-    router.refresh();
+    decline.mutate(item.id, {
+      onError: (e) => {
+        setError(e instanceof Error ? e.message : "Could not decline.");
+      },
+    });
   }
 
   return (
@@ -83,19 +78,27 @@ export function InvitationCard({ item }: { item: InvitationCardData }) {
       <div className="mt-6 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={busy !== null || navPending}
+          disabled={pendingAccept || pendingDecline}
           onClick={onAccept}
-          className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-50"
+          aria-busy={pendingAccept}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-50"
         >
-          {busy === "accept" || navPending ? "Joining…" : "Accept"}
+          {pendingAccept ? (
+            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+          ) : null}
+          {pendingAccept ? "Joining…" : "Accept"}
         </button>
         <button
           type="button"
-          disabled={busy !== null || navPending}
+          disabled={pendingAccept || pendingDecline}
           onClick={onDecline}
-          className="rounded-2xl border border-outline-variant/40 px-5 py-2.5 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-high disabled:opacity-50"
+          aria-busy={pendingDecline}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/40 px-5 py-2.5 text-sm font-medium text-on-surface-variant transition hover:bg-surface-container-high disabled:opacity-50"
         >
-          {busy === "decline" ? "Declining…" : "Decline"}
+          {pendingDecline ? (
+            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+          ) : null}
+          {pendingDecline ? "Declining…" : "Decline"}
         </button>
       </div>
     </li>

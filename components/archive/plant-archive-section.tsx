@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Archive } from "lucide-react";
 import { archivePlantAction } from "@/lib/archive/actions";
 import { ArchiveConfirmDialog } from "@/components/archive/archive-confirm-dialog";
@@ -18,6 +18,7 @@ export function PlantArchiveSection({
   nickname,
 }: PlantArchiveSectionProps) {
   const router = useRouter();
+  const [, startNav] = useTransition();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +33,10 @@ export function PlantArchiveSection({
       return;
     }
     setOpen(false);
-    router.push(`/collections/${collectionSlug}/archive`);
-    router.refresh();
+    startNav(() => {
+      router.push(`/collections/${collectionSlug}/archive`);
+      router.refresh();
+    });
   }
 
   return (

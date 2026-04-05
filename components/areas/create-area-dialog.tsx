@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createAreaAction } from "@/app/(app)/collections/[collectionSlug]/area-actions";
 import { areaMutationFormInitialState } from "@/app/(app)/collections/[collectionSlug]/area-form-state";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type CreateAreaDialogProps = {
   open: boolean;
@@ -149,13 +150,14 @@ function CreateAreaFormBody({
           >
             Cancel
           </button>
-          <button
+          <PendingButton
             type="submit"
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Creating…"
             className="h-12 w-full rounded-full bg-primary text-sm font-medium text-on-primary transition hover:bg-primary/90 disabled:opacity-60"
           >
-            {pending ? "Creating…" : "Create area"}
-          </button>
+            Create area
+          </PendingButton>
         </div>
       </form>
     </div>

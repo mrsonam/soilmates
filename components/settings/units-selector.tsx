@@ -29,6 +29,7 @@ export function UnitsSelector({ waterUnit: w0, lengthUnit: l0 }: Props) {
           <AppSelect
             options={[{ value: "ml", label: "Milliliters (ml)" }]}
             value={water}
+            disabled={status === "saving"}
             onChange={(v) => {
               const next = v as WaterUnit;
               setWater(next);
@@ -51,6 +52,7 @@ export function UnitsSelector({ waterUnit: w0, lengthUnit: l0 }: Props) {
               { value: "in", label: "Inches (in)" },
             ]}
             value={length}
+            disabled={status === "saving"}
             onChange={(v) => {
               const next = v as LengthUnit;
               setLength(next);

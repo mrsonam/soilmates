@@ -11,6 +11,7 @@ import {
   utcTimeValueToMinutes,
 } from "@/lib/push/subscription-client";
 import { useAutoSaveSettings } from "@/hooks/use-auto-save-settings";
+import { PendingButton } from "@/components/loading/pending-button";
 import { AutoSaveStatus } from "./auto-save-status";
 
 const WINDOW_OPTIONS: { value: ReminderPreferredWindow; label: string }[] = [
@@ -96,6 +97,7 @@ export function CareRemindersSettings({
               label: o.label,
             }))}
             value={windowPref}
+            disabled={status === "saving"}
             onChange={(v) => {
               const next = v as ReminderPreferredWindow;
               setWindowPref(next);
@@ -106,11 +108,14 @@ export function CareRemindersSettings({
       </div>
 
       <div>
-        <label className="flex cursor-pointer items-center gap-2">
+        <label
+          className={`flex items-center gap-2 ${status === "saving" ? "cursor-wait opacity-80" : "cursor-pointer"}`}
+        >
           <input
             type="checkbox"
             className="size-4 rounded border-outline-variant"
             checked={quietEnabled}
+            disabled={status === "saving"}
             onChange={(e) => {
               const on = e.target.checked;
               setQuietEnabled(on);
@@ -137,8 +142,9 @@ export function CareRemindersSettings({
               <input
                 type="time"
                 value={quietStart}
+                disabled={status === "saving"}
                 onChange={(e) => setQuietStart(e.target.value)}
-                className="mt-1 block max-w-[11rem] rounded-2xl border-0 bg-surface-container-lowest px-3 py-2 text-sm shadow-(--shadow-ambient) ring-1 ring-outline-variant/10"
+                className="mt-1 block max-w-[11rem] rounded-2xl border-0 bg-surface-container-lowest px-3 py-2 text-sm shadow-(--shadow-ambient) ring-1 ring-outline-variant/10 disabled:opacity-60"
               />
             </div>
             <div>
@@ -146,12 +152,15 @@ export function CareRemindersSettings({
               <input
                 type="time"
                 value={quietEnd}
+                disabled={status === "saving"}
                 onChange={(e) => setQuietEnd(e.target.value)}
-                className="mt-1 block max-w-[11rem] rounded-2xl border-0 bg-surface-container-lowest px-3 py-2 text-sm shadow-(--shadow-ambient) ring-1 ring-outline-variant/10"
+                className="mt-1 block max-w-[11rem] rounded-2xl border-0 bg-surface-container-lowest px-3 py-2 text-sm shadow-(--shadow-ambient) ring-1 ring-outline-variant/10 disabled:opacity-60"
               />
             </div>
-            <button
+            <PendingButton
               type="button"
+              pending={status === "saving"}
+              pendingLabel="Saving…"
               onClick={() => {
                 const a = utcTimeValueToMinutes(quietStart);
                 const b = utcTimeValueToMinutes(quietEnd);
@@ -164,7 +173,7 @@ export function CareRemindersSettings({
               className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-on-primary shadow-sm transition hover:bg-primary/90"
             >
               Apply quiet hours
-            </button>
+            </PendingButton>
           </div>
         ) : null}
       </div>
@@ -190,11 +199,12 @@ export function CareRemindersSettings({
                 type="button"
                 role="radio"
                 aria-checked={active}
+                disabled={status === "saving"}
                 onClick={() => {
                   setSensitivity(o.value);
                   void save({ careSensitivity: o.value });
                 }}
-                className={`flex flex-1 flex-col rounded-2xl px-4 py-3 text-left ring-1 transition sm:min-w-[8.5rem] ${
+                className={`flex flex-1 flex-col rounded-2xl px-4 py-3 text-left ring-1 transition disabled:opacity-60 sm:min-w-[8.5rem] ${
                   active
                     ? "bg-primary/12 ring-primary/40"
                     : "bg-surface-container-high/80 ring-outline-variant/10 hover:bg-surface-container-high"

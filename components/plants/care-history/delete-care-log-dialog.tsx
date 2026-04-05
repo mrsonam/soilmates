@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
-import { deleteCareLogAction } from "@/app/(app)/collections/[collectionSlug]/plants/care-log-mutations";
+import { useDeleteCareLogMutation } from "@/hooks/mutations/plant-care-mutations";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type DeleteCareLogDialogProps = {
   open: boolean;
@@ -21,10 +21,10 @@ export function DeleteCareLogDialog({
   plantSlug,
   log,
 }: DeleteCareLogDialogProps) {
-  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const deleteMut = useDeleteCareLogMutation(collectionSlug, plantSlug);
+  const pending = deleteMut.isPending;
 
   useEffect(() => {
     const el = dialogRef.current;
@@ -39,22 +39,16 @@ export function DeleteCareLogDialog({
 
   async function confirm() {
     if (!log) return;
-    setPending(true);
     setError(null);
     try {
-      const res = await deleteCareLogAction({
+      await deleteMut.mutateAsync({
         collectionSlug,
         plantSlug,
         careLogId: log.id,
       });
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
       onClose();
-      router.refresh();
-    } finally {
-      setPending(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove.");
     }
   }
 
@@ -100,18 +94,20 @@ export function DeleteCareLogDialog({
             <button
               type="button"
               onClick={onClose}
-              className="h-11 flex-1 rounded-full bg-surface-container-high text-sm font-medium text-on-surface ring-1 ring-outline-variant/15 transition hover:bg-surface-container-highest"
+              disabled={pending}
+              className="h-11 flex-1 rounded-full bg-surface-container-high text-sm font-medium text-on-surface ring-1 ring-outline-variant/15 transition hover:bg-surface-container-highest disabled:opacity-40"
             >
               Cancel
             </button>
-            <button
+            <PendingButton
               type="button"
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Removing…"
               onClick={confirm}
               className="h-11 flex-1 rounded-full bg-red-700 text-sm font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
             >
-              {pending ? "Removing…" : "Remove"}
-            </button>
+              Remove
+            </PendingButton>
           </div>
         </div>
       ) : null}

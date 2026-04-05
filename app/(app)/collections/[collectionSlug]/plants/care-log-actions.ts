@@ -11,7 +11,9 @@ import { createActivityEvent } from "@/lib/activity/create-event";
 import { ActivityEventTypes } from "@/lib/activity/event-types";
 import { getActorLabel } from "@/lib/activity/actor-label";
 import { careActionVerbPast } from "@/lib/activity/care-verb";
-export type QuickCareLogResult = { ok: true } | { ok: false; error: string };
+export type QuickCareLogResult =
+  | { ok: true; careLogId: string }
+  | { ok: false; error: string };
 
 export async function createQuickCareLogAction(input: {
   collectionSlug: string;
@@ -110,5 +112,5 @@ export async function createQuickCareLogAction(input: {
   revalidatePath("/plants");
   revalidatePath("/dashboard");
 
-  return { ok: true };
+  return { ok: true, careLogId };
 }

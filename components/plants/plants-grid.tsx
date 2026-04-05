@@ -9,11 +9,12 @@ type PlantsGridProps = {
 export function PlantsGrid({ plants, showCollectionLabel }: PlantsGridProps) {
   return (
     <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      {plants.map((plant) => (
+      {plants.map((plant, index) => (
         <li key={plant.id}>
           <PlantCard
             plant={plant}
             showCollectionLabel={showCollectionLabel}
+            imageLoading={index < 3 ? "eager" : "lazy"}
           />
         </li>
       ))}

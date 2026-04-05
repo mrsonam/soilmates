@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Archive, Leaf, MapPin } from "lucide-react";
 import type {
   ArchivedAreaListItem,
@@ -34,6 +34,7 @@ export function ArchivePageView({
   canArchiveCollection,
 }: ArchivePageViewProps) {
   const router = useRouter();
+  const [, startNav] = useTransition();
   const [confirmCollection, setConfirmCollection] = useState(false);
   const [busy, setBusy] = useState(false);
   const [collError, setCollError] = useState<string | null>(null);
@@ -50,8 +51,10 @@ export function ArchivePageView({
       return;
     }
     setConfirmCollection(false);
-    router.push("/collections");
-    router.refresh();
+    startNav(() => {
+      router.push("/collections");
+      router.refresh();
+    });
   }
 
   return (

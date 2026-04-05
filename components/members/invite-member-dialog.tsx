@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createCollectionInvite } from "@/app/actions/collection-invites";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type Props = {
   collectionSlug: string;
@@ -71,8 +72,9 @@ export function InviteMemberDialog({ collectionSlug, open, onClose }: Props) {
               autoComplete="email"
               required
               value={email}
+              disabled={busy}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-2xl border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-primary/30 focus:ring-2"
+              className="mt-1 w-full rounded-2xl border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-primary/30 focus:ring-2 disabled:opacity-60"
               placeholder="friend@email.com"
             />
           </div>
@@ -83,17 +85,19 @@ export function InviteMemberDialog({ collectionSlug, open, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low"
+              disabled={busy}
+              className="rounded-2xl px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-low disabled:opacity-50"
             >
               Cancel
             </button>
-            <button
+            <PendingButton
               type="submit"
-              disabled={busy}
+              pending={busy}
+              pendingLabel="Sending…"
               className="rounded-2xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-50"
             >
-              {busy ? "Sending…" : "Send invite"}
-            </button>
+              Send invite
+            </PendingButton>
           </div>
         </form>
       </div>

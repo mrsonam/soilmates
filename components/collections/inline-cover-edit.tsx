@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Camera, Pencil, Trash2, X } from "lucide-react";
+import { Camera, Loader2, Pencil, Trash2, X } from "lucide-react";
+import { PendingButton } from "@/components/loading/pending-button";
 import {
   removeAreaCoverAction,
   removeCollectionCoverAction,
@@ -32,6 +33,7 @@ export function InlineCoverEdit({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [pendingOp, setPendingOp] = useState<"upload" | "remove">("upload");
 
   useEffect(() => {
     if (!open) return;
@@ -60,6 +62,7 @@ export function InlineCoverEdit({
     const fd = new FormData(form);
     fd.set("collectionSlug", collectionSlug);
     if (variant === "area" && areaId) fd.set("areaId", areaId);
+    setPendingOp("upload");
     setPending(true);
     try {
       const r =
@@ -84,6 +87,7 @@ export function InlineCoverEdit({
     const fd = new FormData();
     fd.set("collectionSlug", collectionSlug);
     if (variant === "area" && areaId) fd.set("areaId", areaId);
+    setPendingOp("remove");
     setPending(true);
     try {
       const r =
@@ -159,13 +163,14 @@ export function InlineCoverEdit({
                 className="w-full text-[0.7rem] text-on-surface file:mr-2 file:rounded-lg file:border-0 file:bg-primary file:px-2 file:py-1 file:text-[0.65rem] file:font-semibold file:text-white"
               />
               <div className="flex flex-wrap gap-1.5">
-                <button
+                <PendingButton
                   type="submit"
-                  disabled={pending}
+                  pending={pending && pendingOp === "upload"}
+                  pendingLabel="Uploading…"
                   className="rounded-full bg-primary px-3 py-1.5 text-[0.7rem] font-medium text-on-primary disabled:opacity-60"
                 >
-                  {pending ? "…" : "Upload"}
-                </button>
+                  Upload
+                </PendingButton>
                 <button
                   type="button"
                   disabled={pending}
@@ -182,10 +187,15 @@ export function InlineCoverEdit({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-1 text-[0.7rem] font-medium text-on-surface-variant hover:text-red-700 dark:hover:text-red-300"
+                  aria-busy={pending && pendingOp === "remove"}
+                  className="inline-flex items-center gap-1.5 text-[0.7rem] font-medium text-on-surface-variant hover:text-red-700 dark:hover:text-red-300 disabled:opacity-60"
                 >
-                  <Trash2 className="size-3" strokeWidth={2} aria-hidden />
-                  Remove
+                  {pending && pendingOp === "remove" ? (
+                    <Loader2 className="size-3 shrink-0 animate-spin" aria-hidden />
+                  ) : (
+                    <Trash2 className="size-3" strokeWidth={2} aria-hidden />
+                  )}
+                  {pending && pendingOp === "remove" ? "Removing…" : "Remove"}
                 </button>
               </form>
             ) : null}

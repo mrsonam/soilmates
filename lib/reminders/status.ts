@@ -37,3 +37,24 @@ export function computeReminderDisplayStatus(
   if (nowT <= overdueLine) return "due";
   return "overdue";
 }
+
+/** Client-side status for reminder list rows (ISO date strings). */
+export function reminderListItemDisplayStatus(
+  item: {
+    isPaused: boolean;
+    nextDueAt: string;
+    overdueAfterHours: number | null;
+  },
+  now: Date = new Date(),
+): ReminderDisplayStatus {
+  if (item.isPaused) return "paused";
+
+  const next = new Date(item.nextDueAt).getTime();
+  const nowT = now.getTime();
+  const overdueH = item.overdueAfterHours ?? DEFAULT_OVERDUE_AFTER_H;
+  const overdueLine = next + overdueH * 3600 * 1000;
+
+  if (nowT < next) return "upcoming";
+  if (nowT <= overdueLine) return "due";
+  return "overdue";
+}

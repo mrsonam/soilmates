@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
+import { isOptimisticCareLogId } from "@/lib/optimistic/care-log";
 import { formatCareLogWhen } from "@/lib/format";
 import { CareLogActionBadge } from "./care-log-action-badge";
 import { CareLogMetaSummary } from "./care-log-meta-summary";
@@ -16,7 +17,7 @@ type CareLogItemProps = {
   onDelete: (log: CareLogListItem) => void;
 };
 
-export function CareLogItem({
+function CareLogItemInner({
   log,
   isOwner,
   isLast,
@@ -55,7 +56,14 @@ export function CareLogItem({
         <div className="rounded-3xl bg-surface-container-lowest p-5 shadow-(--shadow-ambient) ring-1 ring-outline-variant/[0.08] sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <CareLogActionBadge actionType={log.actionType} />
+              <div className="flex flex-wrap items-center gap-2">
+                <CareLogActionBadge actionType={log.actionType} />
+                {isOptimisticCareLogId(log.id) ? (
+                  <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[0.65rem] font-medium text-primary ring-1 ring-primary/20">
+                    Saving…
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-2 text-sm text-on-surface-variant">
                 <time dateTime={log.actionAt}>{formatCareLogWhen(log.actionAt)}</time>
                 <span className="text-on-surface-variant/50"> · </span>
@@ -161,3 +169,5 @@ export function CareLogItem({
     </li>
   );
 }
+
+export const CareLogItem = memo(CareLogItemInner);

@@ -27,10 +27,13 @@ export function PlantPhotoTimeline({
   onOpen,
   maxCards,
 }: PlantPhotoTimelineProps) {
-  const sorted = [...images].sort(
-    (a, b) =>
-      sortKey(b.capturedAt ?? b.createdAt) - sortKey(a.capturedAt ?? a.createdAt),
-  );
+  const sorted = [...images].sort((a, b) => {
+    const dt =
+      sortKey(b.capturedAt ?? b.createdAt) -
+      sortKey(a.capturedAt ?? a.createdAt);
+    if (dt !== 0) return dt;
+    return a.id.localeCompare(b.id);
+  });
   const limited =
     maxCards != null ? sorted.slice(0, maxCards) : sorted;
 

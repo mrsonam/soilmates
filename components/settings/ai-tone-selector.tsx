@@ -51,11 +51,12 @@ export function AiToneSelector({ aiPersonalityLevel: initial }: Props) {
               type="button"
               role="radio"
               aria-checked={active}
+              disabled={status === "saving"}
               onClick={() => {
                 setLevel(o.value);
                 void save({ aiPersonalityLevel: o.value });
               }}
-              className={`flex flex-col rounded-2xl p-4 text-left ring-1 transition ${
+              className={`flex flex-col rounded-2xl p-4 text-left ring-1 transition disabled:opacity-60 ${
                 active
                   ? "bg-primary/12 ring-primary/45 shadow-sm"
                   : "bg-surface-container-high/75 ring-outline-variant/10 hover:bg-surface-container-high"

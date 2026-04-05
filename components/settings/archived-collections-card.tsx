@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { FolderOpen, RotateCcw } from "lucide-react";
 import type { ArchivedCollectionListItem } from "@/lib/archive/queries";
 import { restoreCollectionAction } from "@/lib/archive/actions";
@@ -13,6 +13,7 @@ type Props = {
 
 export function ArchivedCollectionsCard({ collections }: Props) {
   const router = useRouter();
+  const [, startNav] = useTransition();
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,8 +35,10 @@ export function ArchivedCollectionsCard({ collections }: Props) {
       setError(r.error);
       return;
     }
-    router.push(`/collections/${slug}`);
-    router.refresh();
+    startNav(() => {
+      router.push(`/collections/${slug}`);
+      router.refresh();
+    });
   }
 
   return (

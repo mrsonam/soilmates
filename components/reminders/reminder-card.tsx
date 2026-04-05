@@ -1,39 +1,42 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Check, MoreHorizontal, Pause, Pencil, Play, Trash2 } from "lucide-react";
-import type { ReminderListItem } from "@/lib/reminders/queries";
 import {
-  archiveReminderAction,
-  completeReminderAction,
-  pauseReminderAction,
-  resumeReminderAction,
-} from "@/app/(app)/collections/[collectionSlug]/plants/reminder-actions";
-import { SyncEntityType, SyncOperationType } from "@/lib/sync/operation-types";
-import { runOrEnqueueMutation } from "@/lib/sync/run-or-enqueue";
+  Check,
+  Loader2,
+  MoreHorizontal,
+  Pause,
+  Pencil,
+  Play,
+  Trash2,
+} from "lucide-react";
+import type { ReminderListItem } from "@/lib/reminders/queries";
+import { useReminderMutations } from "@/hooks/mutations/reminder-mutations";
+import { isOptimisticReminderId } from "@/lib/optimistic/reminder-optimistic";
 import { DueDateLabel } from "@/components/reminders/due-date-label";
 import { ReminderRecurrenceSummary } from "@/components/reminders/reminder-recurrence-summary";
 import { ReminderStatusBadge } from "@/components/reminders/reminder-status-badge";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 
 type ReminderCardProps = {
   item: ReminderListItem;
-  collectionSlug: string;
-  plantSlug: string;
   onEdit: (item: ReminderListItem) => void;
+  mutations: ReturnType<typeof useReminderMutations>;
 };
 
-export function ReminderCard({
+function ReminderCardInner({
   item,
-  collectionSlug,
-  plantSlug,
   onEdit,
+  mutations,
 }: ReminderCardProps) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const { complete, pause, resume, archive } = mutations;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const pending =
+    (complete.isPending && complete.variables === item.id) ||
+    (pause.isPending && pause.variables === item.id) ||
+    (resume.isPending && resume.variables === item.id) ||
+    (archive.isPending && archive.variables === item.id);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -46,29 +49,6 @@ export function ReminderCard({
     return () => document.removeEventListener("mousedown", close);
   }, [menuOpen]);
 
-  function run(
-    operationType: string,
-    payload: Record<string, unknown>,
-    fn: () => Promise<{ ok: boolean; error?: string }>,
-  ) {
-    startTransition(async () => {
-      const r = await runOrEnqueueMutation({
-        operationType,
-        entityType: SyncEntityType.REMINDER,
-        entityId: item.id,
-        payload,
-        execute: fn,
-      });
-      if (r.ok) {
-        try {
-          router.refresh();
-        } catch {
-          /* ignore */
-        }
-      }
-    });
-  }
-
   const showMarkDone = !item.isPaused;
 
   return (
@@ -79,6 +59,11 @@ export function ReminderCard({
             <h3 className="font-display text-base font-semibold text-on-surface">
               {item.title}
             </h3>
+            {isOptimisticReminderId(item.id) ? (
+              <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[0.65rem] font-medium text-primary ring-1 ring-primary/20">
+                Saving…
+              </span>
+            ) : null}
             <ReminderStatusBadge status={item.status} />
           </div>
           <p className="mt-1">
@@ -102,22 +87,8 @@ export function ReminderCard({
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
-                run(
-                  SyncOperationType.REMINDER_COMPLETE,
-                  {
-                    collectionSlug,
-                    plantSlug,
-                    reminderId: item.id,
-                  },
-                  () =>
-                    completeReminderAction({
-                      collectionSlug,
-                      plantSlug,
-                      reminderId: item.id,
-                    }),
-                )
-              }
+              aria-busy={pending}
+              onClick={() => complete.mutate(item.id)}
               className={[
                 "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition disabled:opacity-50",
                 item.status === "overdue" || item.status === "due"
@@ -125,7 +96,11 @@ export function ReminderCard({
                   : "bg-surface-container-high text-on-surface ring-1 ring-outline-variant/15 hover:bg-surface-container-highest",
               ].join(" ")}
             >
-              <Check className="size-4" strokeWidth={2.25} aria-hidden />
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Check className="size-4" strokeWidth={2.25} aria-hidden />
+              )}
               Mark done
             </button>
           ) : null}
@@ -159,20 +134,7 @@ export function ReminderCard({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                     onClick={() => {
                       setMenuOpen(false);
-                      run(
-                        SyncOperationType.REMINDER_RESUME,
-                        {
-                          collectionSlug,
-                          plantSlug,
-                          reminderId: item.id,
-                        },
-                        () =>
-                          resumeReminderAction({
-                            collectionSlug,
-                            plantSlug,
-                            reminderId: item.id,
-                          }),
-                      );
+                      resume.mutate(item.id);
                     }}
                   >
                     <Play className="size-4 text-on-surface-variant" />
@@ -184,20 +146,7 @@ export function ReminderCard({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                     onClick={() => {
                       setMenuOpen(false);
-                      run(
-                        SyncOperationType.REMINDER_PAUSE,
-                        {
-                          collectionSlug,
-                          plantSlug,
-                          reminderId: item.id,
-                        },
-                        () =>
-                          pauseReminderAction({
-                            collectionSlug,
-                            plantSlug,
-                            reminderId: item.id,
-                          }),
-                      );
+                      pause.mutate(item.id);
                     }}
                   >
                     <Pause className="size-4 text-on-surface-variant" />
@@ -209,20 +158,7 @@ export function ReminderCard({
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                   onClick={() => {
                     setMenuOpen(false);
-                    run(
-                      SyncOperationType.REMINDER_ARCHIVE,
-                      {
-                        collectionSlug,
-                        plantSlug,
-                        reminderId: item.id,
-                      },
-                      () =>
-                        archiveReminderAction({
-                          collectionSlug,
-                          plantSlug,
-                          reminderId: item.id,
-                        }),
-                    );
+                    archive.mutate(item.id);
                   }}
                 >
                   <Trash2 className="size-4 text-on-surface-variant/80" />
@@ -236,3 +172,5 @@ export function ReminderCard({
     </div>
   );
 }
+
+export const ReminderCard = memo(ReminderCardInner);

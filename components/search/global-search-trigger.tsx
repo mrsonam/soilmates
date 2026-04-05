@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
@@ -10,6 +10,13 @@ export function GlobalSearchTrigger({
   variant?: "icon" | "pill";
 }) {
   const router = useRouter();
+  const [, startNav] = useTransition();
+
+  const goSearch = useCallback(() => {
+    startNav(() => {
+      router.push("/search");
+    });
+  }, [router]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -24,23 +31,23 @@ export function GlobalSearchTrigger({
       const isCmdK = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k";
       if (isCmdK) {
         e.preventDefault();
-        router.push("/search");
+        goSearch();
       }
       if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        router.push("/search");
+        goSearch();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router]);
+  }, [goSearch]);
 
   if (variant === "pill") {
     return (
       <button
         type="button"
-        onClick={() => router.push("/search")}
+        onClick={goSearch}
         className="hidden h-10 min-w-[14rem] items-center gap-2 rounded-full bg-surface-container-high/80 px-4 text-left text-sm text-on-surface-variant ring-1 ring-outline-variant/15 transition hover:bg-surface-container-highest hover:text-on-surface md:inline-flex"
         aria-label="Search"
       >
@@ -56,7 +63,7 @@ export function GlobalSearchTrigger({
   return (
     <button
       type="button"
-      onClick={() => router.push("/search")}
+      onClick={goSearch}
       className="flex size-10 items-center justify-center rounded-xl text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
       aria-label="Search"
       title="Search (⌘K / /)"

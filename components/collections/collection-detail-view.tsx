@@ -10,6 +10,7 @@ import { CollectionSectionTabs } from "@/components/collections/collection-secti
 import type { ActivityFeedItem } from "@/lib/activity/queries";
 import { CollectionActivityPreview } from "@/components/activity/collection-activity-preview";
 import { CollectionMembersPreview } from "@/components/members/collection-members-preview";
+import { RecordCollectionVisit } from "@/components/collections/record-collection-visit";
 
 type CollectionDetailViewProps = {
   collectionSlug: string;
@@ -52,6 +53,7 @@ export function CollectionDetailView({
 
   return (
     <div>
+      <RecordCollectionVisit collectionSlug={collectionSlug} />
       {description ? (
         <p className="mb-6 text-sm leading-relaxed text-on-surface-variant lg:max-w-3xl">
           {description}

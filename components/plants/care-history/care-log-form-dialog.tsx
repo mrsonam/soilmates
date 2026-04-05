@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { AppDateTimePicker } from "@/components/ui/app-datetime-picker";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
+import { careLogCreatorFromProfile } from "@/lib/optimistic/user-creator";
 import {
-  createDetailedCareLogAction,
-  updateCareLogAction,
-} from "@/app/(app)/collections/[collectionSlug]/plants/care-log-mutations";
+  useCreateDetailedCareLogMutation,
+  useUpdateCareLogMutation,
+} from "@/hooks/mutations/plant-care-mutations";
 import type { CareLogActionTypeValue } from "@/lib/validations/care-log";
 import {
   buildCareLogMetadata,
@@ -19,6 +19,7 @@ import {
   CARE_LOG_ACTION_OPTIONS,
   formatDateTimeLocal,
 } from "./care-log-ui";
+import { ActionSectionStatus, PendingButton } from "@/components/loading/pending-button";
 
 type CareLogFormDialogProps = {
   open: boolean;
@@ -27,6 +28,12 @@ type CareLogFormDialogProps = {
   plantSlug: string;
   mode: "add" | "edit";
   initialLog?: CareLogListItem | null;
+  creator: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  };
 };
 
 function emptyMeta(): CareLogFormMetaFields {
@@ -46,11 +53,18 @@ export function CareLogFormDialog({
   plantSlug,
   mode,
   initialLog,
+  creator,
 }: CareLogFormDialogProps) {
-  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const creatorSnapshot = careLogCreatorFromProfile(creator);
+  const createMut = useCreateDetailedCareLogMutation(
+    collectionSlug,
+    plantSlug,
+    creatorSnapshot,
+  );
+  const updateMut = useUpdateCareLogMutation(collectionSlug, plantSlug);
+  const pending = createMut.isPending || updateMut.isPending;
 
   const [actionType, setActionType] =
     useState<CareLogActionTypeValue>("watered");
@@ -123,42 +137,32 @@ export function CareLogFormDialog({
     const tags = parseTagsInput(tagsRaw);
     const metadata = buildCareLogMetadata(actionType, meta);
 
-    setPending(true);
     try {
       if (mode === "add") {
-        const res = await createDetailedCareLogAction({
+        await createMut.mutateAsync({
           collectionSlug,
           plantSlug,
           actionType,
-          actionAt: actionAt.toISOString(),
+          actionAt,
           notes: notes.trim() || undefined,
           tags,
           metadata,
         });
-        if (!res.ok) {
-          setError(res.error);
-          return;
-        }
       } else if (initialLog) {
-        const res = await updateCareLogAction({
+        await updateMut.mutateAsync({
           collectionSlug,
           plantSlug,
           careLogId: initialLog.id,
           actionType,
-          actionAt: actionAt.toISOString(),
+          actionAt,
           notes: notes.trim() || undefined,
           tags,
           metadata,
         });
-        if (!res.ok) {
-          setError(res.error);
-          return;
-        }
       }
       onClose();
-      router.refresh();
-    } finally {
-      setPending(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
     }
   }
 
@@ -182,6 +186,10 @@ export function CareLogFormDialog({
     >
       {open ? (
         <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+          <ActionSectionStatus
+            busy={pending}
+            label={mode === "add" ? "Saving your log…" : "Updating log…"}
+          />
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2
@@ -195,7 +203,8 @@ export function CareLogFormDialog({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl p-2 text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
+              disabled={pending}
+              className="rounded-xl p-2 text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface disabled:opacity-40"
               aria-label="Close"
             >
               <X className="size-5" strokeWidth={1.5} aria-hidden />
@@ -220,12 +229,14 @@ export function CareLogFormDialog({
                 <button
                   key={value}
                   type="button"
+                  disabled={pending}
                   onClick={() => setActionType(value)}
                   className={[
                     "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition sm:text-sm",
                     actionType === value
                       ? "bg-primary text-on-primary"
                       : "bg-surface-container-high text-on-surface ring-1 ring-outline-variant/10 hover:bg-surface-container-highest",
+                    pending ? "opacity-60" : "",
                   ].join(" ")}
                 >
                   <Icon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -270,6 +281,7 @@ export function CareLogFormDialog({
                 onChange={(e) =>
                   setMeta((m) => ({ ...m, waterMl: e.target.value }))
                 }
+                disabled={pending}
                 className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
               />
             </div>
@@ -291,6 +303,7 @@ export function CareLogFormDialog({
                 onChange={(e) =>
                   setMeta((m) => ({ ...m, fertilizerType: e.target.value }))
                 }
+                disabled={pending}
                 className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
               />
             </div>
@@ -312,6 +325,7 @@ export function CareLogFormDialog({
                 onChange={(e) =>
                   setMeta((m) => ({ ...m, soilMix: e.target.value }))
                 }
+                disabled={pending}
                 className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
               />
             </div>
@@ -333,6 +347,7 @@ export function CareLogFormDialog({
                 onChange={(e) =>
                   setMeta((m) => ({ ...m, harvestAmount: e.target.value }))
                 }
+                disabled={pending}
                 className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
               />
             </div>
@@ -354,6 +369,7 @@ export function CareLogFormDialog({
                 onChange={(e) =>
                   setMeta((m) => ({ ...m, movedReason: e.target.value }))
                 }
+                disabled={pending}
                 className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
               />
             </div>
@@ -372,6 +388,7 @@ export function CareLogFormDialog({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Soil was dry to the touch…"
+              disabled={pending}
               className="mt-2 w-full resize-none rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
             />
           </div>
@@ -389,6 +406,7 @@ export function CareLogFormDialog({
               value={tagsRaw}
               onChange={(e) => setTagsRaw(e.target.value)}
               placeholder="routine, filtered water (comma-separated)"
+              disabled={pending}
               className="mt-2 w-full rounded-2xl border border-transparent bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-outline-variant/15"
             />
           </div>
@@ -397,17 +415,19 @@ export function CareLogFormDialog({
             <button
               type="button"
               onClick={onClose}
-              className="h-11 rounded-full px-6 text-sm font-medium text-on-surface-variant transition hover:text-on-surface"
+              disabled={pending}
+              className="h-11 rounded-full px-6 text-sm font-medium text-on-surface-variant transition hover:text-on-surface disabled:opacity-40"
             >
               Cancel
             </button>
-            <button
+            <PendingButton
               type="submit"
-              disabled={pending}
+              pending={pending}
+              pendingLabel="Saving…"
               className="h-11 rounded-full bg-primary px-8 text-sm font-medium text-on-primary transition hover:bg-primary/90 disabled:opacity-60"
             >
-              {pending ? "Saving…" : mode === "add" ? "Save log" : "Save changes"}
-            </button>
+              {mode === "add" ? "Save log" : "Save changes"}
+            </PendingButton>
           </div>
         </form>
       ) : null}

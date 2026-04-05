@@ -6,11 +6,13 @@ import {
   useEffect,
   useRef,
   useState,
+  useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
 import { Users, X } from "lucide-react";
 import { createCollectionInAppAction } from "@/app/(app)/collections/actions";
 import { createCollectionFormInitialState } from "@/app/(app)/collections/create-collection-form-state";
+import { PendingButton } from "@/components/loading/pending-button";
 
 type CreateCollectionDialogProps = {
   open: boolean;
@@ -30,6 +32,7 @@ function CreateCollectionFormBody({
   formKey: number;
 }) {
   const router = useRouter();
+  const [, startNav] = useTransition();
   const [collaborative, setCollaborative] = useState(true);
   const [state, formAction, pending] = useActionState(
     createCollectionInAppAction,
@@ -39,10 +42,12 @@ function CreateCollectionFormBody({
   useEffect(() => {
     if (state.success && state.slug) {
       onSuccess();
-      router.push(`/collections/${state.slug}`);
-      router.refresh();
+      startNav(() => {
+        router.push(`/collections/${state.slug}`);
+        router.refresh();
+      });
     }
-  }, [state.success, state.slug, onSuccess, router]);
+  }, [state.success, state.slug, onSuccess, router, startNav]);
 
   return (
     <div className="p-6 sm:p-8">
@@ -199,15 +204,16 @@ function CreateCollectionFormBody({
           >
             Cancel
           </button>
-          <button
+          <PendingButton
             type="submit"
             name="openAfter"
             value="1"
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Creating…"
             className="h-12 w-full rounded-full bg-primary text-sm font-medium text-on-primary transition hover:bg-primary/90 disabled:opacity-60"
           >
-            {pending ? "Creating…" : "Create Collection"}
-          </button>
+            Create Collection
+          </PendingButton>
         </div>
       </form>
     </div>

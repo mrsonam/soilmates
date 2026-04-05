@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { CareLogListItem } from "@/lib/plants/care-logs";
 import { CareLogItem } from "./care-log-item";
 
@@ -10,7 +11,7 @@ type CareLogTimelineProps = {
   onDelete: (log: CareLogListItem) => void;
 };
 
-export function CareLogTimeline({
+function CareLogTimelineInner({
   logs,
   currentUserId,
   onEdit,
@@ -31,3 +32,5 @@ export function CareLogTimeline({
     </ul>
   );
 }
+
+export const CareLogTimeline = memo(CareLogTimelineInner);
