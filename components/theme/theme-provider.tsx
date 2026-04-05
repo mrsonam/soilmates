@@ -17,6 +17,12 @@ import {
 } from "@/lib/pwa/branding";
 import { THEME_COOKIE_NAME } from "@/lib/theme/theme-cookie";
 
+function removeAlienThemeColorMetas(): void {
+  document.querySelectorAll('meta[name="theme-color"]').forEach((el) => {
+    if (el.id !== "soilmates-theme-color") el.remove();
+  });
+}
+
 type ThemeContextValue = {
   theme: UserTheme;
   setTheme: (t: UserTheme) => void;
@@ -71,6 +77,7 @@ export function ThemeProvider({
        * meta so Safari matches the actual `html.dark` state.
        */
       const content = dark ? PWA_THEME_COLOR_DARK : PWA_THEME_COLOR_LIGHT;
+      removeAlienThemeColorMetas();
       let meta = document.getElementById(
         "soilmates-theme-color",
       ) as HTMLMetaElement | null;

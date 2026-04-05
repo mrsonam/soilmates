@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Manrope } from "next/font/google";
+import { cookies, headers } from "next/headers";
 import Script from "next/script";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -8,8 +9,9 @@ import {
   PWA_APP_ICON_192,
   PWA_APP_ICON_SVG,
   PWA_APPLE_TOUCH_ICON,
-  PWA_THEME_COLOR_LIGHT,
 } from "@/lib/pwa/branding";
+import { resolvePwaInitialShell } from "@/lib/theme/resolve-pwa-initial-shell";
+import { THEME_COOKIE_NAME } from "@/lib/theme/theme-cookie";
 import { getThemeInitScript } from "@/lib/theme/theme-init-script";
 
 const inter = Inter({
@@ -101,31 +103,48 @@ export const metadata: Metadata = {
   category: "lifestyle",
 };
 
+/**
+ * Do not set `themeColor` here — Next injects a second `<meta name="theme-color">`
+ * that fights `#soilmates-theme-color`. Shell colors are set in `<head>` + inline script.
+ */
 export const viewport: Viewport = {
-  /**
-   * One non-media default for SSR / browser tabs. Do not use an array with
-   * `prefers-color-scheme` — that follows the OS and fights in-app dark mode.
-   * `theme-init-script` + ThemeProvider append/update `#soilmates-theme-color`
-   * last so iOS standalone picks the real shell color.
-   */
-  themeColor: PWA_THEME_COLOR_LIGHT,
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
   colorScheme: "light dark",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jar = await cookies();
+  const h = await headers();
+  const pathname = h.get("x-pathname") ?? "/";
+  const shell = resolvePwaInitialShell(
+    pathname,
+    jar.get(THEME_COOKIE_NAME)?.value,
+  );
+
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${manrope.variable} h-full min-h-dvh bg-surface antialiased`}
+      className={`${inter.variable} ${manrope.variable} h-full min-h-dvh bg-surface antialiased${shell.dark ? " dark" : ""}`}
     >
+      <head>
+        <meta
+          id="soilmates-theme-color"
+          name="theme-color"
+          content={shell.themeColor}
+        />
+        <meta
+          id="soilmates-apple-status-bar"
+          name="apple-mobile-web-app-status-bar-style"
+          content={shell.statusBarStyle}
+        />
+      </head>
       <body className="flex min-h-dvh flex-col bg-surface text-on-surface">
         <Script
           id="soilmates-theme-init"

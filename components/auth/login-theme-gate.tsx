@@ -14,6 +14,10 @@ export function LoginThemeGate() {
     root.classList.remove("dark");
     root.style.colorScheme = "light";
 
+    document.querySelectorAll('meta[name="theme-color"]').forEach((el) => {
+      if (el.id !== "soilmates-theme-color") el.remove();
+    });
+
     let tc = document.getElementById(
       "soilmates-theme-color",
     ) as HTMLMetaElement | null;
