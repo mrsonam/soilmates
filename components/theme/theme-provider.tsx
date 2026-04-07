@@ -100,8 +100,8 @@ export function ThemeProvider({
       } else if (!statusMeta.id) {
         statusMeta.id = "soilmates-apple-status-bar";
       }
-      /** Dark: translucent bar so `html` `--surface` fills the notch; light: separate light bar. */
-      statusMeta.setAttribute("content", dark ? "black-translucent" : "default");
+      /** Status bar mode: 'default' respects theme-color securely on both OS themes. */
+      statusMeta.setAttribute("content", "default");
       document.head.appendChild(statusMeta);
     }
     apply();

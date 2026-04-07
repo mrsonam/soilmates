@@ -7,10 +7,11 @@ const STORAGE_KEY = "soilmates-pwa-splash-seen";
 
 /**
  * Branded splash on first open in standalone (installed) mode — feels like a native shell.
- * Skips in browser tabs to avoid flashing on every navigation.
  */
 export function PwaSplashLoader() {
-  const [visible, setVisible] = useState(false);
+  // Initialize to true. Render instantly, no black flashing voids!
+  const [visible, setVisible] = useState(true);
+  const [fading, setFading] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -18,21 +19,30 @@ export function PwaSplashLoader() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone ===
         true;
-    if (!standalone) return;
+    if (!standalone) {
+      setVisible(false);
+      return;
+    }
     try {
-      if (sessionStorage.getItem(STORAGE_KEY)) return;
+      if (sessionStorage.getItem(STORAGE_KEY)) {
+        setVisible(false);
+        return;
+      }
     } catch {
       /* private mode */
     }
-    setVisible(true);
+    
     const t = window.setTimeout(() => {
-      setVisible(false);
+      setFading(true);
+      setTimeout(() => {
+        setVisible(false);
+      }, 500); // Wait for CSS transition
       try {
         sessionStorage.setItem(STORAGE_KEY, "1");
       } catch {
         /* ignore */
       }
-    }, 900);
+    }, 1200);
     return () => window.clearTimeout(t);
   }, []);
 
@@ -40,23 +50,23 @@ export function PwaSplashLoader() {
 
   return (
     <div
-      className="fixed inset-0 z-10000 flex flex-col items-center justify-center bg-[#fbf9f6] dark:bg-[#121411]"
+      className={`fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-surface transition-opacity duration-500 ease-in-out ${fading ? "opacity-0" : "opacity-100"}`}
       aria-hidden
     >
       <div className="flex flex-col items-center gap-5 px-8 text-center">
-        <span className="flex size-20 items-center justify-center rounded-3xl bg-primary/12 text-primary shadow-(--shadow-ambient) ring-1 ring-outline-variant/10">
+        <span className="flex size-20 items-center justify-center rounded-3xl bg-primary/15 text-primary shadow-[0_8px_30px_-10px_rgba(0,0,0,0.12)] ring-1 ring-outline-variant/20 dark:shadow-[0_8px_30px_-10px_rgba(0,0,0,0.6)]">
           <Leaf className="size-10" strokeWidth={1.5} aria-hidden />
         </span>
         <div>
-          <p className="font-display text-xl font-semibold tracking-tight text-on-surface">
+          <p className="font-display text-xl font-bold tracking-tight text-on-surface">
             Soil Mates
           </p>
-          <p className="mt-1 text-sm text-on-surface-variant">
-            Mindful plant care
+          <p className="mt-2 text-[0.85rem] font-bold text-on-surface-variant">
+            Waking up the greenhouse...
           </p>
         </div>
         <span
-          className="inline-block size-8 animate-spin rounded-full border-2 border-primary/25 border-t-primary"
+          className="mt-6 inline-block size-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary"
           aria-label="Loading"
         />
       </div>

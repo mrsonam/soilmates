@@ -72,7 +72,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 lg:hidden pointer-events-none flex justify-center"
+      className="fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 lg:hidden pointer-events-none flex justify-center"
       aria-label="Primary"
     >
       <div className="pointer-events-auto w-full max-w-[26rem] rounded-[2.5rem] bg-surface-container-high/60 p-2 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] backdrop-blur-2xl ring-1 ring-white/50 dark:bg-surface-container-highest/40 dark:ring-white/10 dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]">
