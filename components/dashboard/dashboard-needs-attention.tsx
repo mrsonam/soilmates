@@ -22,6 +22,9 @@ import { completeReminderAction } from "@/app/(app)/collections/[collectionSlug]
 import { SyncEntityType, SyncOperationType } from "@/lib/sync/operation-types";
 import { runOrEnqueueMutation } from "@/lib/sync/run-or-enqueue";
 import { DueDateLabel } from "@/components/reminders/due-date-label";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function iconForReminderType(t: ReminderType): LucideIcon {
   const m: Record<ReminderType, LucideIcon> = {
@@ -43,20 +46,18 @@ function statusPill(item: DueCareItem): { label: string; className: string } {
   if (item.status === "overdue") {
     return {
       label: "OVERDUE",
-      className:
-        "bg-primary-fixed/30 text-on-surface ring-1 ring-primary/15 dark:bg-primary-fixed/20 dark:text-on-surface",
+      className: "bg-terracotta/20 text-terracotta ring-1 ring-terracotta/30",
     };
   }
   if (item.status === "due") {
     return {
       label: "DUE NOW",
-      className: "bg-primary-fixed/45 text-primary ring-1 ring-primary/18",
+      className: "bg-primary-fixed text-primary-container-dark ring-1 ring-primary/20",
     };
   }
   return {
     label: "SCHEDULED",
-    className:
-      "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant/12",
+    className: "bg-surface-container-high text-on-surface-variant ring-1 ring-outline-variant/12",
   };
 }
 
@@ -68,53 +69,43 @@ function CompactCard({ item }: { item: DueCareItem }) {
   const href = `/collections/${item.collection.slug}/plants/${item.plant.slug}?tab=reminders`;
 
   return (
-    <div className="relative flex flex-col overflow-hidden rounded-3xl bg-surface-container-lowest shadow-[var(--shadow-card)] ring-1 ring-outline-variant/[0.07] transition-[transform,box-shadow] duration-300 ease-out hover:shadow-[var(--shadow-card-hover)]">
-      <div className="relative min-h-[7.5rem] bg-gradient-to-br from-primary-fixed/25 via-surface-container-low to-surface-container-high/80">
+    <Card variant="interactive" className="relative flex flex-col overflow-hidden p-0">
+      <div className="relative min-h-[7.5rem] bg-surface-container-high overflow-hidden">
+        {/* Alive gradient sunlight sweep */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-fixed/30 via-transparent to-surface-container-high/80 opacity-70 transition-opacity duration-1000 group-hover:opacity-100" />
         {item.plant.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.plant.imageUrl}
             alt=""
-            className="absolute inset-0 size-full object-cover opacity-40"
+            className="absolute inset-0 size-full object-cover opacity-60 mix-blend-overlay transition-transform duration-700 hover:scale-105"
           />
         ) : null}
-        <div className="relative flex items-start justify-between p-4">
-          <span
-            className={[
-              "flex size-11 items-center justify-center rounded-2xl bg-surface-container-lowest/95 text-primary shadow-sm ring-1 ring-outline-variant/10",
-            ].join(" ")}
-          >
+        <div className="relative flex items-start justify-between p-5">
+          <span className="flex size-11 items-center justify-center rounded-[1rem] bg-surface/90 text-primary shadow-sm backdrop-blur-md ring-1 ring-outline-variant/10">
             <Icon className="size-5" strokeWidth={1.75} aria-hidden />
           </span>
-          <span
-            className={[
-              "rounded-full px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide",
-              pill.className,
-            ].join(" ")}
-          >
+          <span className={`rounded-full px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-wide backdrop-blur-md ${pill.className}`}>
             {pill.label}
           </span>
         </div>
       </div>
-      <div className="flex flex-1 flex-col p-4 pt-3">
-        <p className="font-display text-base font-semibold leading-tight text-on-surface">
+      <div className="flex flex-1 flex-col p-5">
+        <p className="font-display text-lg font-bold leading-tight tracking-tight text-on-surface line-clamp-1">
           {item.plant.nickname}
         </p>
-        <p className="mt-1 line-clamp-2 text-sm text-on-surface-variant">
+        <p className="mt-1 line-clamp-2 text-sm font-medium text-on-surface-variant">
           {item.title}
         </p>
-        <p className="mt-3 text-xs text-on-surface-variant/90">
+        <p className="mt-3 text-[0.7rem] font-bold uppercase tracking-wider text-on-surface-variant/80">
           <DueDateLabel iso={item.nextDueAt} />
         </p>
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <Link
-            href={href}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            Open
-          </Link>
-          <button
-            type="button"
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" asChild className="px-0 -translate-x-2">
+            <Link href={href}>View Details</Link>
+          </Button>
+          <Button
+            variant="primary"
+            size="icon"
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
@@ -123,9 +114,9 @@ function CompactCard({ item }: { item: DueCareItem }) {
                   entityType: SyncEntityType.REMINDER,
                   entityId: item.reminderId,
                   payload: {
-                    collectionSlug: item.collection.slug,
-                    plantSlug: item.plant.slug,
-                    reminderId: item.reminderId,
+                     collectionSlug: item.collection.slug,
+                     plantSlug: item.plant.slug,
+                     reminderId: item.reminderId,
                   },
                   execute: () =>
                     completeReminderAction({
@@ -137,14 +128,13 @@ function CompactCard({ item }: { item: DueCareItem }) {
                 if (r.ok) router.refresh();
               })
             }
-            className="flex size-11 items-center justify-center rounded-full bg-[#4a5d45] text-white shadow-md transition hover:bg-[#3d4d39] disabled:opacity-50"
             aria-label="Mark done"
           >
             <Check className="size-5" strokeWidth={2.5} aria-hidden />
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -154,10 +144,39 @@ function WideCard({ item }: { item: DueCareItem }) {
   const href = `/collections/${item.collection.slug}/plants/${item.plant.slug}?tab=reminders`;
 
   return (
-    <div className="flex flex-col gap-4 rounded-3xl bg-surface-container-lowest p-4 shadow-[0_8px_30px_-12px_rgba(40,45,38,0.1)] ring-1 ring-outline-variant/[0.08] sm:flex-row sm:items-center sm:gap-6 sm:p-5">
-      <div className="relative size-24 shrink-0 overflow-hidden rounded-2xl bg-surface-container-high ring-1 ring-outline-variant/10 sm:size-28">
+    <Card 
+      variant="interactive" 
+      className={`group flex items-center p-4 sm:p-5 gap-5 ${pending ? "opacity-50 scale-95" : ""}`}
+    >
+      <Checkbox 
+        disabled={pending}
+        checked={pending}
+        onChange={() =>
+          startTransition(async () => {
+            const r = await runOrEnqueueMutation({
+              operationType: SyncOperationType.REMINDER_COMPLETE,
+              entityType: SyncEntityType.REMINDER,
+              entityId: item.reminderId,
+              payload: {
+                collectionSlug: item.collection.slug,
+                plantSlug: item.plant.slug,
+                reminderId: item.reminderId,
+              },
+              execute: () =>
+                completeReminderAction({
+                  collectionSlug: item.collection.slug,
+                  plantSlug: item.plant.slug,
+                  reminderId: item.reminderId,
+                }),
+            });
+            if (r.ok) router.refresh();
+          })
+        }
+        className="h-8 w-8 scale-110 ml-1" 
+      />
+      
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-surface-container-high ring-1 ring-outline-variant/10 sm:size-16">
         {item.plant.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.plant.imageUrl}
             alt=""
@@ -165,61 +184,24 @@ function WideCard({ item }: { item: DueCareItem }) {
           />
         ) : (
           <div className="flex size-full items-center justify-center text-primary/30">
-            <Leaf className="size-10" strokeWidth={1.25} aria-hidden />
+            <Leaf className="size-6" strokeWidth={1.5} aria-hidden />
           </div>
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-display text-lg font-semibold text-on-surface">
-            {item.plant.nickname}
-          </p>
-          <span className="rounded-full bg-[#f4e3d4] px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[#7a5a45]">
-            Care
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-on-surface-variant">{item.title}</p>
-        <p className="mt-2 text-xs text-on-surface-variant">
-          {item.collection.name} · {item.area.name}
+      
+      <div className="min-w-0 flex-1 py-1">
+        <p className="font-display text-[1.05rem] font-bold text-on-surface truncate">
+          {item.plant.nickname}
+        </p>
+        <p className="mt-0.5 text-sm font-medium text-on-surface-variant truncate">
+          {item.title} <span className="opacity-50 mx-1">·</span> {item.collection.name}
         </p>
       </div>
-      <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-        <Link
-          href={href}
-          className="inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium text-primary ring-1 ring-outline-variant/15 transition hover:bg-surface-container-high"
-        >
-          View plant
-        </Link>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              const r = await runOrEnqueueMutation({
-                operationType: SyncOperationType.REMINDER_COMPLETE,
-                entityType: SyncEntityType.REMINDER,
-                entityId: item.reminderId,
-                payload: {
-                  collectionSlug: item.collection.slug,
-                  plantSlug: item.plant.slug,
-                  reminderId: item.reminderId,
-                },
-                execute: () =>
-                  completeReminderAction({
-                    collectionSlug: item.collection.slug,
-                    plantSlug: item.plant.slug,
-                    reminderId: item.reminderId,
-                  }),
-              });
-              if (r.ok) router.refresh();
-            })
-          }
-          className="inline-flex h-11 min-w-[7rem] items-center justify-center rounded-2xl bg-[#4a5d45] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3d4d39] disabled:opacity-50"
-        >
-          Done
-        </button>
-      </div>
-    </div>
+      
+      <Button variant="secondary" size="icon" asChild className="hidden sm:inline-flex rounded-xl mr-1">
+        <Link href={href} aria-label="Open plant"><Eye className="h-4 w-4" strokeWidth={2} /></Link>
+      </Button>
+    </Card>
   );
 }
 
@@ -229,24 +211,19 @@ function prioritize(items: DueCareItem[]): DueCareItem[] {
   return [...items].sort((a, b) => score(a) - score(b));
 }
 
-type DashboardNeedsAttentionProps = {
-  items: DueCareItem[];
-};
-
-export function DashboardNeedsAttention({ items }: DashboardNeedsAttentionProps) {
+export function DashboardNeedsAttention({ items }: { items: DueCareItem[] }) {
   const ordered = prioritize(items);
 
   if (ordered.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-outline-variant/25 bg-surface-container-low/40 px-6 py-14 text-center">
-        <p className="font-display text-xl font-semibold text-on-surface">
-          Everything looks taken care of
+      <Card variant="flat" className="border-dashed border-2 px-6 py-14 text-center bg-transparent mt-6">
+        <p className="font-display text-xl font-bold tracking-tight text-on-surface">
+          Your greenhouse is thriving.
         </p>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-on-surface-variant">
-          No reminders need attention right now. Add gentle rhythms on any plant
-          page whenever you&apos;re ready.
+        <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-on-surface-variant leading-relaxed">
+          No action needed today. Everything is taken care of.
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -254,15 +231,17 @@ export function DashboardNeedsAttention({ items }: DashboardNeedsAttentionProps)
   const rest = ordered.slice(2);
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="space-y-6 mt-6">
+      <div className="grid gap-6 sm:grid-cols-2">
         {topPair.map((item) => (
           <CompactCard key={item.reminderId} item={item} />
         ))}
       </div>
-      {rest.map((item) => (
-        <WideCard key={item.reminderId} item={item} />
-      ))}
+      <div className="flex flex-col gap-3">
+        {rest.map((item) => (
+          <WideCard key={item.reminderId} item={item} />
+        ))}
+      </div>
     </div>
   );
 }

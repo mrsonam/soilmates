@@ -1,21 +1,22 @@
 @import "tailwindcss";
 
-/* DESIGN.md — The Living Canvas tokens */
+/* DESIGN.md — The Living Canvas tokens (Botanical Solarium) */
 :root {
   color-scheme: light;
-  --surface: #fbf9f6;
-  --surface-container-low: #f5f3f0;
+  --surface: #f8fafc;
+  --surface-container-low: #f1f5f9;
   --surface-container-lowest: #ffffff;
-  --surface-container-high: #eae8e5;
-  --surface-container-highest: #e4e2df;
-  --primary: #516447;
-  --primary-container: #95a987;
+  --surface-container-high: #e2e8f0;
+  --surface-container-highest: #cbd5e1;
+  --primary: #128260;
+  --primary-container: #a7f3d0;
   --on-primary: #ffffff;
-  --on-surface: #1b1c1a;
-  --on-surface-variant: #424842;
-  --outline-variant: #c2c8c0;
-  --primary-fixed: #d4e9c4;
-  --primary-fixed-dim: #b8cda9;
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  --outline-variant: #cbd5e1;
+  --primary-fixed: #a7f3d0;
+  --primary-fixed-dim: #6ee7b7;
+  --terracotta: #e07a5f;
   /** Matches @theme --shadow-ambient (used in base layer form controls). */
   --shadow-ambient: 0 24px 48px -12px rgba(27, 28, 26, 0.06);
   /** Form ring: outline-variant at ~10% */
@@ -27,29 +28,30 @@
   --motion-normal: 220ms;
   --motion-slow: 320ms;
   --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --ease-premium: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-premium: cubic-bezier(0.34, 1.56, 0.64, 1);
   /** Quieter card depth than default ambient for dense UI */
   --shadow-card: 0 8px 28px -14px rgba(27, 28, 26, 0.07);
   --shadow-card-hover: 0 20px 44px -18px rgba(27, 28, 26, 0.11);
   --shadow-header: 0 1px 0 rgba(27, 28, 26, 0.05);
 }
 
-/** Dark theme — toggled via `html.dark` (see ThemeProvider). */
+/** Dark theme — toggled via `html.dark` (Midnight Conservatory). */
 html.dark {
   color-scheme: dark;
-  --surface: #121411;
-  --surface-container-low: #1a1c18;
-  --surface-container-lowest: #0e0f0d;
-  --surface-container-high: #252722;
-  --surface-container-highest: #2f322c;
-  --primary: #b8cf9f;
-  --primary-container: #3f4a38;
-  --on-primary: #0f140c;
-  --on-surface: #e7e8e3;
-  --on-surface-variant: #bfc4b8;
-  --outline-variant: #444a40;
-  --primary-fixed: #2d3828;
-  --primary-fixed-dim: #3d4a36;
+  --surface: #050b08;
+  --surface-container-low: #08130e;
+  --surface-container-lowest: #030806;
+  --surface-container-high: #0d1f17;
+  --surface-container-highest: #132b20;
+  --primary: #a3e635;
+  --primary-container: #223f11;
+  --on-primary: #052e16;
+  --on-surface: #f8fafc;
+  --on-surface-variant: #94a3b8;
+  --outline-variant: #11281e;
+  --primary-fixed: #bef264;
+  --primary-fixed-dim: #d9f99d;
+  --terracotta: #f87171;
   --shadow-ambient: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
   --form-ring: color-mix(in srgb, var(--outline-variant) 18%, transparent);
   --form-ring-focus: color-mix(in srgb, var(--primary) 45%, transparent);
@@ -64,20 +66,20 @@ html.dark {
  * Prevents `body` white from showing under `black-translucent` when vars resolve late.
  */
 html.dark {
-  background-color: #121411 !important;
+  background-color: #050b08 !important;
 }
 
 html.dark body {
   color: var(--on-surface);
-  background-color: #121411 !important;
+  background-color: #050b08 !important;
 }
 
 html:not(.dark) {
-  background-color: #fbf9f6 !important;
+  background-color: #f8fafc !important;
 }
 
 html:not(.dark) body {
-  background-color: #fbf9f6 !important;
+  background-color: #f8fafc !important;
 }
 
 /**
@@ -109,9 +111,10 @@ html {
   --color-outline-variant: var(--outline-variant);
   --color-primary-fixed: var(--primary-fixed);
   --color-primary-fixed-dim: var(--primary-fixed-dim);
+  --color-terracotta: var(--terracotta);
   --font-sans: var(--font-inter);
   --font-display: var(--font-manrope);
-  --shadow-ambient: 0 24px 48px -12px rgba(27, 28, 26, 0.06);
+  --shadow-ambient: var(--shadow-ambient);
 }
 
 body {
