@@ -33,7 +33,7 @@ export function RestingState() {
           <Moon className="absolute -right-2 -top-1.5 h-3 w-3 text-on-surface-variant opacity-80" />
         </div>
         <p className="text-[13px] font-medium tracking-tight text-on-surface">
-          Resting. Changes will sync later.
+          Sleeping offline. We'll sync up when you're back.
         </p>
       </div>
     </>

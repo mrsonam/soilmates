@@ -218,10 +218,10 @@ export function DashboardNeedsAttention({ items }: { items: DueCareItem[] }) {
     return (
       <Card variant="flat" className="border-dashed border-2 px-6 py-14 text-center bg-transparent mt-6">
         <p className="font-display text-xl font-bold tracking-tight text-on-surface">
-          Your greenhouse is thriving.
+          Zero thirsty plants.
         </p>
         <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-on-surface-variant leading-relaxed">
-          No action needed today. Everything is taken care of.
+          Go touch grass outside. Your indoor jungle doesn't need you today.
         </p>
       </Card>
     );

@@ -3,8 +3,8 @@
  * `:root` and `html.dark` `--surface` so the dynamic island / status area never
  * shows a mismatched strip when the user picks dark mode while OS is light.
  */
-export const PWA_THEME_COLOR_LIGHT = "#fbf9f6";
-export const PWA_THEME_COLOR_DARK = "#121411";
+export const PWA_THEME_COLOR_LIGHT = "#f8fafc";
+export const PWA_THEME_COLOR_DARK = "#050b08";
 
 /** Central paths for PWA + Web Push imagery (keep in sync with `public/icons/`). */
 export const PWA_APP_ICON_SVG = "/icons/soilmates-icon.svg";

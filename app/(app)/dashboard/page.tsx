@@ -44,8 +44,8 @@ export default async function DashboardPage() {
   const greeting = dashboardGreetingLine(firstName);
   const subline =
     attentionCount > 0
-      ? `You have ${attentionCount} ${attentionCount === 1 ? "reminder" : "reminders"} that could use your attention.`
-      : "You’re all caught up on scheduled care — enjoy the calm.";
+      ? `You've got ${attentionCount} thirsty ${attentionCount === 1 ? "friend" : "friends"} waiting for you.`
+      : "Not a single thirsty plant in sight. Total botanical bliss.";
 
   return (
     <PageContainer wide>
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
               Needs attention today
             </h2>
             <p className="mt-1 text-sm text-on-surface-variant">
-              Reminders due or coming up — tap done when you&apos;ve taken care of it.
+              Check off the essentials when you are done.
             </p>
             <div className="mt-6">
               <DashboardNeedsAttention items={dueCare} />
