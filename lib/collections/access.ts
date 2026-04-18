@@ -112,6 +112,7 @@ export async function getAreaForActiveMemberBySlugs(
       sortOrder: true,
       createdAt: true,
       coverImageStoragePath: true,
+      coverImagePublicUrl: true,
       _count: {
         select: {
           plants: { where: { archivedAt: null } },
@@ -123,7 +124,7 @@ export async function getAreaForActiveMemberBySlugs(
 
   const coverImageSignedUrl = row.coverImageStoragePath
     ? await createSignedUrlForStoragePath(row.coverImageStoragePath)
-    : null;
+    : row.coverImagePublicUrl?.trim() || null;
 
   return {
     id: row.id,

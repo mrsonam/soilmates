@@ -75,6 +75,9 @@ export function CareLogFormDialog({
   const [tagsRaw, setTagsRaw] = useState("");
   const [meta, setMeta] = useState<CareLogFormMetaFields>(emptyMeta);
 
+  const initialLogSyncKey =
+    initialLog == null ? "" : `${initialLog.id}:${initialLog.updatedAt}`;
+
   const resetFromLog = useCallback((log: CareLogListItem | null | undefined) => {
     if (log) {
       setActionType(log.actionType as CareLogActionTypeValue);
@@ -115,7 +118,9 @@ export function CareLogFormDialog({
     } else {
       el.close();
     }
-  }, [open, mode, initialLog, resetFromLog]);
+    // Use a content key — `initialLog` from React Query often gets a new object reference each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode, initialLogSyncKey, resetFromLog]);
 
   const showWater = actionType === "watered" || actionType === "misted";
   const showFert = actionType === "fertilized";

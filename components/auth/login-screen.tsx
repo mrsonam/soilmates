@@ -1,14 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { Droplets, Leaf, Mail, Camera } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Camera, Droplets, KeyRound, Mail } from "lucide-react";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { LoginThemeGate } from "./login-theme-gate";
-
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1525498128493-380d1990a112?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+import {
+  getPublicDemoLoginDefaults,
+  isPortfolioDemoLink,
+} from "@/lib/demo/portfolio-login";
+import { AuthPageShell } from "./auth-page-shell";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -33,13 +34,37 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+function messageForAuthError(code: string | undefined): string | null {
+  if (!code) return null;
+  if (code === "CredentialsSignin") {
+    return "Invalid email or password.";
+  }
+  return "Something went wrong signing in. Try again.";
+}
+
 type LoginScreenProps = {
-  authError?: boolean;
+  authError?: string;
+  registered?: boolean;
 };
 
-export function LoginScreen({ authError }: LoginScreenProps) {
+export function LoginScreen({ authError, registered }: LoginScreenProps) {
+  const searchParams = useSearchParams();
+  const queryError = searchParams.get("error") ?? undefined;
+  const registeredParam = searchParams.get("registered");
+  const highlightPortfolioDemo = isPortfolioDemoLink(searchParams);
+  const demoLogin = getPublicDemoLoginDefaults();
+
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleSignInError, setGoogleSignInError] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const urlError = messageForAuthError(queryError ?? authError);
+  const showRegistered =
+    registered ||
+    registeredParam === "1" ||
+    registeredParam === "true";
 
   async function signInWithGoogle() {
     setGoogleSignInError(false);
@@ -53,156 +78,193 @@ export function LoginScreen({ authError }: LoginScreenProps) {
     }
   }
 
+  async function signInWithEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setGoogleSignInError(false);
+    setEmailLoading(true);
+    try {
+      await signIn("credentials", {
+        email: email.trim().toLowerCase(),
+        password,
+        callbackUrl: "/",
+      });
+    } catch (err) {
+      console.error(err);
+      setEmailLoading(false);
+    }
+  }
+
   return (
-    <div className="flex min-h-screen flex-1 pt-[env(safe-area-inset-top)]">
-      <LoginThemeGate />
-      {/* Left — hero (DESIGN: glass testimonial, gradient soul on imagery) */}
-      <div className="relative hidden w-1/2 overflow-hidden rounded-r-4xl lg:block">
-        <Image
-          src={HERO_IMAGE}
-          alt=""
-          fill
-          className="object-cover"
-          sizes="50vw"
-          priority
-        />
-        <div
-          className="absolute inset-0 bg-linear-to-br from-primary/75 via-primary/40 to-primary-container/50"
-          aria-hidden
-        />
-        <div className="absolute inset-0 flex flex-col justify-between p-8 md:p-11">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 text-on-primary drop-shadow-sm"
+    <AuthPageShell>
+      <div className="mx-auto w-full max-w-md space-y-10">
+        <header className="space-y-3">
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] text-on-surface sm:text-4xl">
+            Start your mindful plant journey
+          </h1>
+          <p className="text-base leading-relaxed text-on-surface-variant">
+            Join our community of plant lovers and watch your indoor garden
+            flourish with ease.
+          </p>
+        </header>
+
+        {showRegistered && (
+          <p
+            className="rounded-2xl bg-primary-container/40 px-4 py-3 text-sm text-on-surface"
+            role="status"
           >
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-xl ring-1 ring-white/20">
-              <Leaf className="size-6 text-on-primary" strokeWidth={1.75} />
-            </span>
-            <span className="font-display text-xl font-semibold tracking-tight">
-              Soil Mates
-            </span>
-          </Link>
-          <figure
-            className="max-w-md rounded-[1.25rem] p-5 shadow-(--shadow-ambient) ring-1 ring-white/25 backdrop-blur-[20px]"
-            style={{ background: "rgba(251, 249, 246, 0.82)" }}
+            Account created. Sign in with your email and password below.
+          </p>
+        )}
+
+        {(urlError || googleSignInError) && (
+          <p
+            className="rounded-2xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant"
+            role="alert"
           >
-            <blockquote className="font-display text-lg font-semibold leading-snug tracking-tight text-on-surface">
-              “The most mindful way to keep my urban jungle thriving.”
-            </blockquote>
-            <figcaption className="mt-4 flex items-center gap-3">
-              <div
-                className="size-11 shrink-0 rounded-full bg-primary-fixed ring-2 ring-white/60"
-                aria-hidden
-              />
-              <div>
-                <p className="text-sm font-medium text-on-surface">
-                  Elena Green
-                </p>
-                <p className="text-xs text-on-surface-variant">
-                  Plant parent since 2021
-                </p>
-              </div>
-            </figcaption>
-          </figure>
+            {urlError ??
+              "Something went wrong signing in. Try again."}
+          </p>
+        )}
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail(demoLogin.email);
+              setPassword(demoLogin.password);
+            }}
+            aria-pressed={highlightPortfolioDemo}
+            className={[
+              "flex w-full items-center justify-center gap-2.5 rounded-2xl border px-4 py-3.5 text-sm font-semibold shadow-(--shadow-ambient) transition",
+              highlightPortfolioDemo
+                ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30 ring-offset-2 ring-offset-surface hover:bg-primary/[0.14]"
+                : "border-outline-variant/25 bg-surface-container-low text-on-surface hover:bg-surface-container-high",
+            ].join(" ")}
+          >
+            <KeyRound className="size-4 shrink-0 opacity-90" strokeWidth={2} />
+            Use demo account
+          </button>
         </div>
-      </div>
 
-      {/* Right — auth panel (tonal layers, no hard borders) */}
-      <div className="flex w-full flex-1 flex-col justify-center bg-surface px-6 py-12 sm:px-10 lg:w-1/2 lg:px-14 xl:px-20">
-        <div className="mx-auto w-full max-w-md space-y-10">
-          <header className="space-y-3">
-            <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] text-on-surface sm:text-4xl">
-              Start your mindful plant journey
-            </h1>
-            <p className="text-base leading-relaxed text-on-surface-variant">
-              Join our community of plant lovers and watch your indoor garden
-              flourish with ease.
-            </p>
-          </header>
-
-          {(authError || googleSignInError) && (
-            <p
-              className="rounded-2xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant"
-              role="alert"
+        <form onSubmit={(e) => void signInWithEmail(e)} className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="login-email"
+              className="block text-sm font-medium text-on-surface"
             >
-              Something went wrong signing in. Try again.
-            </p>
-          )}
-
-          <div className="space-y-5">
-            <button
-              type="button"
-              onClick={() => void signInWithGoogle()}
-              disabled={googleLoading}
-              className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-surface-container-lowest text-[0.9375rem] font-medium text-on-surface shadow-(--shadow-ambient) transition hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
+              Email
+            </label>
+            <input
+              id="login-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-outline-variant/25 bg-surface-container-lowest px-4 text-on-surface shadow-(--shadow-ambient) outline-none placeholder:text-on-surface-variant/60 focus:border-primary/40 focus:bg-surface-container-high"
+              placeholder="you@example.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="login-password"
+              className="block text-sm font-medium text-on-surface"
             >
-              <GoogleIcon className="size-5 shrink-0" />
-              {googleLoading ? "Connecting…" : "Continue with Google"}
-            </button>
+              Password
+            </label>
+            <input
+              id="login-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 w-full rounded-2xl border border-outline-variant/25 bg-surface-container-lowest px-4 text-on-surface shadow-(--shadow-ambient) outline-none placeholder:text-on-surface-variant/60 focus:border-primary/40 focus:bg-surface-container-high"
+              placeholder="••••••••"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={emailLoading}
+            className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-on-surface text-[0.9375rem] font-medium text-surface shadow-(--shadow-ambient) transition hover:bg-on-surface/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Mail className="size-5 shrink-0 opacity-90" strokeWidth={1.75} />
+            {emailLoading ? "Signing in…" : "Sign in with email"}
+          </button>
+        </form>
 
-            <div className="flex items-center gap-4 py-1">
-              <span className="h-px flex-1 bg-outline-variant/15" />
-              <span className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-on-surface-variant">
-                or
-              </span>
-              <span className="h-px flex-1 bg-outline-variant/15" />
-            </div>
+        <p className="text-center text-sm text-on-surface-variant">
+          New here?{" "}
+          <Link
+            href="/signup"
+            className="font-medium text-primary hover:underline"
+          >
+            Create an account
+          </Link>
+        </p>
 
-            <button
-              type="button"
-              disabled
-              className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-2xl bg-on-surface/75 text-[0.9375rem] font-medium text-surface opacity-70"
-            >
-              <Mail className="size-5 shrink-0 opacity-90" strokeWidth={1.75} />
-              Sign up with Email
-            </button>
-
-            <p className="text-center text-xs text-on-surface-variant">
-              Email sign-in isn’t available yet — use Google to continue.
-            </p>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-surface-container-low p-5">
-                <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-fixed/80 text-primary">
-                  <Droplets className="size-5" strokeWidth={1.75} />
-                </div>
-                <h2 className="font-display text-sm font-semibold text-on-surface">
-                  Smart Reminders
-                </h2>
-                <p className="mt-1.5 text-xs leading-relaxed text-on-surface-variant">
-                  Never miss a watering again with custom schedules.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-surface-container-low p-5">
-                <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-orange-100/90 text-orange-700">
-                  <Camera className="size-5" strokeWidth={1.75} />
-                </div>
-                <h2 className="font-display text-sm font-semibold text-on-surface">
-                  Health ID
-                </h2>
-                <p className="mt-1.5 text-xs leading-relaxed text-on-surface-variant">
-                  Diagnose plant issues instantly with AI scanning.
-                </p>
-              </div>
-            </div>
+        <div className="space-y-5">
+          <div className="flex items-center gap-4 py-1">
+            <span className="h-px flex-1 bg-outline-variant/15" />
+            <span className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-on-surface-variant">
+              or
+            </span>
+            <span className="h-px flex-1 bg-outline-variant/15" />
           </div>
 
-          <nav
-            className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-on-surface-variant"
-            aria-label="Legal"
+          <button
+            type="button"
+            onClick={() => void signInWithGoogle()}
+            disabled={googleLoading}
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-surface-container-lowest text-[0.9375rem] font-medium text-on-surface shadow-(--shadow-ambient) transition hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Link href="/privacy" className="hover:text-on-surface">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="hover:text-on-surface">
-              Terms of Service
-            </Link>
-            <Link href="/help" className="hover:text-on-surface">
-              Help Center
-            </Link>
-          </nav>
+            <GoogleIcon className="size-5 shrink-0" />
+            {googleLoading ? "Connecting…" : "Continue with Google"}
+          </button>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-surface-container-low p-5">
+              <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary-fixed/80 text-primary">
+                <Droplets className="size-5" strokeWidth={1.75} />
+              </div>
+              <h2 className="font-display text-sm font-semibold text-on-surface">
+                Smart Reminders
+              </h2>
+              <p className="mt-1.5 text-xs leading-relaxed text-on-surface-variant">
+                Never miss a watering again with custom schedules.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-surface-container-low p-5">
+              <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-orange-100/90 text-orange-700">
+                <Camera className="size-5" strokeWidth={1.75} />
+              </div>
+              <h2 className="font-display text-sm font-semibold text-on-surface">
+                Health ID
+              </h2>
+              <p className="mt-1.5 text-xs leading-relaxed text-on-surface-variant">
+                Diagnose plant issues instantly with AI scanning.
+              </p>
+            </div>
+          </div>
         </div>
+
+        <nav
+          className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-on-surface-variant"
+          aria-label="Legal"
+        >
+          <Link href="/privacy" className="hover:text-on-surface">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-on-surface">
+            Terms of Service
+          </Link>
+          <Link href="/help" className="hover:text-on-surface">
+            Help Center
+          </Link>
+        </nav>
       </div>
-    </div>
+    </AuthPageShell>
   );
 }

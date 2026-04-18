@@ -71,12 +71,14 @@ enum CareLogActionType {
   custom
 }
 
-/// App profile; created on first Google sign-in (NextAuth). `id` is the app user id.
+/// App profile; created on first sign-in (Google OAuth or email/password). `id` is the app user id.
 model Profile {
   id        String    @id @db.Uuid
   email     String    @unique
   fullName  String?   @map("full_name")
   avatarUrl String?   @map("avatar_url")
+  /// Set for email/password accounts; null for Google-only users until they set a password.
+  passwordHash String?  @map("password_hash") @db.Text
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
@@ -165,6 +167,8 @@ model Collection {
   /// Private Supabase Storage path for collection hero/cover (same bucket as plant images).
   coverImageStoragePath String?   @map("cover_image_storage_path")
   coverImageMimeType    String?   @map("cover_image_mime_type")
+  /// Optional HTTPS URL (e.g. Unsplash) when no uploaded cover is stored — demo / legacy.
+  coverImagePublicUrl String?     @map("cover_image_public_url") @db.Text
   createdById           String    @map("created_by") @db.Uuid
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -194,6 +198,7 @@ model Area {
   description           String?
   coverImageStoragePath String?   @map("cover_image_storage_path")
   coverImageMimeType    String?   @map("cover_image_mime_type")
+  coverImagePublicUrl   String?   @map("cover_image_public_url") @db.Text
   sortOrder             Int       @default(0) @map("sort_order")
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

@@ -74,6 +74,7 @@ export async function setCollectionCoverFromFile(
       data: {
         coverImageStoragePath: storagePath,
         coverImageMimeType: mime,
+        coverImagePublicUrl: null,
       },
     });
   } catch (e) {
@@ -103,18 +104,24 @@ export async function clearCollectionCover(
 
   const col = await prisma.collection.findFirst({
     where: { id: collectionId, archivedAt: null },
-    select: { coverImageStoragePath: true },
+    select: { coverImageStoragePath: true, coverImagePublicUrl: true },
   });
-  if (!col?.coverImageStoragePath) {
+  if (!col?.coverImageStoragePath && !col?.coverImagePublicUrl?.trim()) {
     return { ok: true };
   }
 
   const oldPath = col.coverImageStoragePath;
   await prisma.collection.update({
     where: { id: collectionId },
-    data: { coverImageStoragePath: null, coverImageMimeType: null },
+    data: {
+      coverImageStoragePath: null,
+      coverImageMimeType: null,
+      coverImagePublicUrl: null,
+    },
   });
-  await deletePlantImageObject(oldPath);
+  if (oldPath) {
+    await deletePlantImageObject(oldPath);
+  }
   return { ok: true };
 }
 
@@ -169,6 +176,7 @@ export async function setAreaCoverFromFile(
       data: {
         coverImageStoragePath: storagePath,
         coverImageMimeType: mime,
+        coverImagePublicUrl: null,
       },
     });
   } catch (e) {
@@ -203,17 +211,23 @@ export async function clearAreaCover(
       collectionId,
       archivedAt: null,
     },
-    select: { coverImageStoragePath: true },
+    select: { coverImageStoragePath: true, coverImagePublicUrl: true },
   });
-  if (!area?.coverImageStoragePath) {
+  if (!area?.coverImageStoragePath && !area?.coverImagePublicUrl?.trim()) {
     return { ok: true };
   }
 
   const oldPath = area.coverImageStoragePath;
   await prisma.area.update({
     where: { id: areaId },
-    data: { coverImageStoragePath: null, coverImageMimeType: null },
+    data: {
+      coverImageStoragePath: null,
+      coverImageMimeType: null,
+      coverImagePublicUrl: null,
+    },
   });
-  await deletePlantImageObject(oldPath);
+  if (oldPath) {
+    await deletePlantImageObject(oldPath);
+  }
   return { ok: true };
 }

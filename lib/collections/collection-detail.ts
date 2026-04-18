@@ -52,6 +52,7 @@ export const getCollectionDetailForActiveMember = cache(
             description: true,
             createdAt: true,
             coverImageStoragePath: true,
+            coverImagePublicUrl: true,
           },
         },
       },
@@ -78,6 +79,7 @@ export const getCollectionDetailForActiveMember = cache(
           sortOrder: true,
           createdAt: true,
           coverImageStoragePath: true,
+          coverImagePublicUrl: true,
           _count: {
             select: {
               plants: { where: { archivedAt: null } },
@@ -110,7 +112,7 @@ export const getCollectionDetailForActiveMember = cache(
 
     const collectionCoverUrl = row.collection.coverImageStoragePath
       ? (signed.get(row.collection.coverImageStoragePath) ?? null)
-      : null;
+      : row.collection.coverImagePublicUrl?.trim() || null;
 
     const areas: AreaForCollectionDetail[] = areasRaw.map((a) => ({
       id: a.id,
@@ -122,7 +124,7 @@ export const getCollectionDetailForActiveMember = cache(
       createdAt: a.createdAt.toISOString(),
       coverImageSignedUrl: a.coverImageStoragePath
         ? (signed.get(a.coverImageStoragePath) ?? null)
-        : null,
+        : a.coverImagePublicUrl?.trim() || null,
     }));
 
     return {

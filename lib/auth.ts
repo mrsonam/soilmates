@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { randomUUID } from "crypto";
+import { verifyPassword } from "@/lib/password-hash";
 import { prisma } from "@/lib/prisma";
 
 if (!process.env.NEXTAUTH_SECRET) {
@@ -25,40 +27,95 @@ function isProfileUuid(id: unknown): id is string {
   return typeof id === "string" && PROFILE_UUID_RE.test(id);
 }
 
+function normalizeEmail(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const t = value.trim().toLowerCase();
+  return t.length > 0 ? t : null;
+}
+
+const credentialsProvider = Credentials({
+  name: "credentials",
+  credentials: {
+    email: { label: "Email", type: "email" },
+    password: { label: "Password", type: "password" },
+  },
+  async authorize(credentials) {
+    const email = normalizeEmail(credentials?.email);
+    const password =
+      typeof credentials?.password === "string" ? credentials.password : "";
+    if (!email || !password) return null;
+
+    const profile = await prisma.profile.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        avatarUrl: true,
+        passwordHash: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!profile?.passwordHash || profile.deletedAt) return null;
+
+    const valid = await verifyPassword(password, profile.passwordHash);
+    if (!valid) return null;
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.fullName,
+      image: profile.avatarUrl,
+    };
+  },
+});
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
-  providers: [...(googleProvider ? [googleProvider] : [])],
+  providers: [...(googleProvider ? [googleProvider] : []), credentialsProvider],
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (!googleProvider || account?.provider !== "google" || !user.email) {
-        return false;
+      if (account?.provider === "credentials") {
+        return Boolean(user?.email);
       }
 
-      await prisma.profile.upsert({
-        where: { email: user.email },
-        create: {
-          id: randomUUID(),
-          email: user.email,
-          fullName: user.name ?? null,
-          avatarUrl: user.image ?? null,
-        },
-        update: {
-          fullName: user.name ?? undefined,
-          avatarUrl: user.image ?? undefined,
-          deletedAt: null,
-        },
-      });
+      if (account?.provider === "google") {
+        if (!googleProvider || !user.email) {
+          return false;
+        }
 
-      return true;
+        await prisma.profile.upsert({
+          where: { email: user.email },
+          create: {
+            id: randomUUID(),
+            email: user.email,
+            fullName: user.name ?? null,
+            avatarUrl: user.image ?? null,
+          },
+          update: {
+            fullName: user.name ?? undefined,
+            avatarUrl: user.image ?? undefined,
+            deletedAt: null,
+          },
+        });
+
+        return true;
+      }
+
+      return false;
     },
     async jwt({ token, user }) {
       if (user?.email) {
         token.email = user.email;
+      }
+      if (user && "id" in user && typeof user.id === "string" && user.id) {
+        token.id = user.id;
       }
       const email = typeof token.email === "string" ? token.email : undefined;
       if (email && (!token.id || !isProfileUuid(token.id))) {

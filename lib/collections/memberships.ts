@@ -104,6 +104,7 @@ export async function getCollectionsWithStatsForUser(
       description: true,
       createdAt: true,
       coverImageStoragePath: true,
+      coverImagePublicUrl: true,
     },
   });
 
@@ -157,6 +158,6 @@ export async function getCollectionsWithStatsForUser(
     areaCount: areaCountByCollection[c.id] ?? 0,
     coverImageSignedUrl: c.coverImageStoragePath
       ? (signed.get(c.coverImageStoragePath) ?? null)
-      : null,
+      : c.coverImagePublicUrl?.trim() || null,
   }));
 }
